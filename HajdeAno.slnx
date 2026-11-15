@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/dev/" />
+  <Folder Name="/dev/screenshots/">
+    <Project Path="dev/screenshots/HajdeAno.Screenshots.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/HajdeAno.App/HajdeAno.App.csproj" />
+    <Project Path="src/HajdeAno.Cli/HajdeAno.Cli.csproj" />
+    <Project Path="src/HajdeAno.Core/HajdeAno.Core.csproj" />
+    <Project Path="src/HajdeAno.Llm/HajdeAno.Llm.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HajdeAno.Core.Tests/HajdeAno.Core.Tests.csproj" />
+    <Project Path="tests/HajdeAno.Llm.Tests/HajdeAno.Llm.Tests.csproj" />
+  </Folder>
+</Solution>

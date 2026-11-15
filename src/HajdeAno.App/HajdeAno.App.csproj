@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>HajdeAno</AssemblyName>
+    <RootNamespace>HajdeAno.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/hajde-ano.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <!-- Distribution settings, see DESIGN.md -->
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HajdeAno.Core\HajdeAno.Core.csproj" />
+    <ProjectReference Include="..\HajdeAno.Llm\HajdeAno.Llm.csproj" />
+  </ItemGroup>
+
+  <!--
+    LLamaSharp ships llama.cpp as content files under runtimes/<rid>/native/ and probes
+    them relative to the executable. Keep only the libraries of the target runtime and
+    exclude them from the single-file bundle so that they are placed next to the
+    executable (the "distribute alongside" option of DESIGN.md).
+  -->
+  <Target
+    Name="HajdeAnoLlamaNatives"
+    AfterTargets="ComputeResolvedFilesToPublishList"
+    Condition="'$(RuntimeIdentifier)' != ''"
+  >
+    <ItemGroup>
+      <_HajdeAnoOtherNative
+        Include="@(ResolvedFileToPublish)"
+        Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^runtimes[\\/]+')) and !$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^runtimes[\\/]+$(RuntimeIdentifier)[\\/]'))"
+      />
+      <ResolvedFileToPublish Remove="@(_HajdeAnoOtherNative)" />
+      <ResolvedFileToPublish Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^runtimes[\\/]+$(RuntimeIdentifier)[\\/]'))">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+</Project>

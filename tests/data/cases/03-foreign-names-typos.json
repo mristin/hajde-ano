@@ -1,0 +1,27 @@
+{
+  "name": "03-foreign-names-typos",
+  "description": "Unusual foreign names, misspellings, Unicode characters, AHV number. Fictional.",
+  "documents": [
+    "Die Klientin Zeynep Yıldırım-Đorđević (Nationalität: türkisch) wurde am 12.09.2023 von ihrem Arbeitgeber, der Grüezi Gastro GmbH in Winterthur, fristlos entlassen. Ihre AHV-Nummer lautet 756.1234.5678.97. Ihr Mann Søren Åkesson ist dänischer Staatsangehöriger.\n\nFrau Yildirim-Djordjevic hat sich bei der Beratungsstelle gemeldet. Laut Zeynep schuldet ihr die Grüezi Gastro GmbH noch EUR 2'300. Søren hat eine Kundennummer bei der Elektra Energie AG: KD-449120.",
+    "Nachtrag: Frau Yildirm-Đorđević (sic) hat die Kündigung angefochten. Herr Åkeson begleitet sie zum Termin am 3. Oktober 2023."
+  ],
+  "expected": [
+    {"text": "Zeynep Yıldırım-Đorđević", "type": "PERSON"},
+    {"text": "Yildirim-Djordjevic", "type": "PERSON"},
+    {"text": "Zeynep", "type": "PERSON"},
+    {"text": "Yildirm-Đorđević", "type": "PERSON"},
+    {"text": "türkisch", "type": "NATIONALITY"},
+    {"text": "12.09.2023", "type": "DATE"},
+    {"text": "Grüezi Gastro GmbH", "type": "ORGANIZATION"},
+    {"text": "Winterthur", "type": "CITY"},
+    {"text": "756.1234.5678.97", "type": "SOCIAL_SECURITY_NUMBER"},
+    {"text": "Søren Åkesson", "type": "PERSON"},
+    {"text": "Søren", "type": "PERSON"},
+    {"text": "Åkeson", "type": "PERSON"},
+    {"text": "dänischer", "type": "NATIONALITY"},
+    {"text": "EUR 2'300", "type": "AMOUNT"},
+    {"text": "Elektra Energie AG", "type": "ORGANIZATION"},
+    {"text": "KD-449120", "type": "CUSTOMER_NUMBER"},
+    {"text": "3. Oktober 2023", "type": "DATE"}
+  ]
+}

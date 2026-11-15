@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  precommit:
+    name: Pre-commit checks (format, lint, offline guard, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python development tools
+        run: python -m pip install -r dev/requirements.txt
+
+      - name: Run pre-commit checks
+        run: python dev/continuous_integration/precommit.py
+
+  test-and-publish-smoke:
+    name: Tests and published self-test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Unit and integration tests (toy model)
+        run: dotnet test HajdeAno.slnx --configuration Release
+
+      - name: Publish for this platform and run the self-test on the published executable
+        run: python dev/publish.py --version 0.0.0-ci --self-test tests/data/models/stories260K.gguf

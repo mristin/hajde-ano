@@ -1,0 +1,50 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,axaml,xaml}]
+indent_style = space
+indent_size = 4
+
+[*.{csproj,props,targets,json,yml,yaml,slnx}]
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.cs]
+# Analyzer severities. Keep the build fast and focused on real problems.
+dotnet_diagnostic.CA1303.severity = none   # literals as localized parameters
+dotnet_diagnostic.CA1515.severity = none   # make types internal (apps)
+dotnet_diagnostic.CA1848.severity = none   # LoggerMessage delegates (no logging)
+dotnet_diagnostic.CA1305.severity = none   # IFormatProvider (UI strings)
+dotnet_diagnostic.CA1307.severity = none
+dotnet_diagnostic.CA1309.severity = none
+dotnet_diagnostic.CA1310.severity = none
+dotnet_diagnostic.CA1311.severity = none
+dotnet_diagnostic.CA1304.severity = none
+dotnet_diagnostic.CA1002.severity = none   # List<T> in public API
+dotnet_diagnostic.CA2227.severity = none   # settable collections for JSON
+dotnet_diagnostic.CA1819.severity = none
+dotnet_diagnostic.CA1031.severity = none   # catch general exceptions at UI boundary
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1716.severity = none
+dotnet_diagnostic.CA1707.severity = none   # underscores in test names
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1724.severity = none
+dotnet_diagnostic.CA1812.severity = none
+dotnet_diagnostic.CA1711.severity = none   # CaseDictionary is a domain name
+
+dotnet_diagnostic.IDE0005.severity = warning  # unnecessary usings
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_diagnostic.IDE0161.severity = warning
+
+[src/HajdeAno.App/**.cs]
+# Binding sources must be instance members.
+dotnet_diagnostic.CA1822.severity = none

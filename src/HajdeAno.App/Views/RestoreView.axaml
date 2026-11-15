@@ -1,0 +1,64 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:HajdeAno.App.ViewModels"
+    xmlns:c="using:HajdeAno.App.Controls"
+    x:Class="HajdeAno.App.Views.RestoreView"
+    x:DataType="vm:RestoreViewModel"
+>
+    <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,*,Auto" Margin="4,8">
+        <TextBlock
+            Grid.Column="0"
+            Classes="h2"
+            Text="Response from the online service"
+            Margin="0,0,0,4"
+        />
+        <TextBlock
+            Grid.Column="2"
+            Classes="h2"
+            Text="Restored text (review before copying)"
+            Margin="0,0,0,4"
+        />
+        <TextBox
+            Grid.Row="1"
+            Grid.Column="0"
+            Text="{Binding Input}"
+            AcceptsReturn="True"
+            TextWrapping="Wrap"
+            PlaceholderText="Paste the answer that contains placeholders such as [PERSON_1]…"
+            FontSize="14"
+        />
+        <Border Grid.Row="1" Grid.Column="2" Classes="card">
+            <ScrollViewer>
+                <c:HighlightedTextBlock
+                    Segments="{Binding OutputSegments}"
+                    TextWrapping="Wrap"
+                    FontSize="14"
+                />
+            </ScrollViewer>
+        </Border>
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Spacing="6" Margin="0,8,0,0">
+            <ItemsControl ItemsSource="{Binding Issues}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock
+                            Text="{Binding StringFormat='⚠ {0}'}"
+                            TextWrapping="Wrap"
+                            Foreground="#D13438"
+                        />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Restore" Command="{Binding RestoreCommand}" />
+                <Button
+                    Classes="accent"
+                    Content="Copy restored text"
+                    Command="{Binding CopyCommand}"
+                />
+                <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Message}" VerticalAlignment="Center" Classes="hint" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

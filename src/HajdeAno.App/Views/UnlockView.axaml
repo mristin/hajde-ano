@@ -1,0 +1,54 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:HajdeAno.App.ViewModels"
+    x:Class="HajdeAno.App.Views.UnlockView"
+    x:DataType="vm:UnlockViewModel"
+>
+    <Grid>
+        <Border
+            Classes="card"
+            Width="460"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="24"
+        >
+            <StackPanel Spacing="12">
+                <TextBlock Classes="h1" Text="Hajde Ano" />
+                <TextBlock Classes="h2" Text="{Binding Title}" TextWrapping="Wrap" />
+                <TextBlock Classes="hint" Text="{Binding Hint}" />
+                <TextBox
+                    PasswordChar="●"
+                    PlaceholderText="Password"
+                    Text="{Binding Password}"
+                    x:Name="PasswordBox"
+                />
+                <TextBox
+                    PasswordChar="●"
+                    PlaceholderText="Repeat password"
+                    Text="{Binding ConfirmPassword}"
+                    IsVisible="{Binding IsNewVault}"
+                />
+                <TextBlock
+                    Classes="error"
+                    Text="{Binding Error}"
+                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+                />
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button
+                        Classes="accent"
+                        Command="{Binding UnlockCommand}"
+                        IsDefault="True"
+                        Content="Unlock"
+                    />
+                    <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding IsBusy}" />
+                </StackPanel>
+                <TextBlock
+                    Classes="hint"
+                    FontSize="12"
+                    Text="Works fully offline. No telemetry, no cloud, no network access."
+                />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

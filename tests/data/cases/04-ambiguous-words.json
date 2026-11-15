@@ -1,0 +1,22 @@
+{
+  "name": "04-ambiguous-words",
+  "description": "Surnames that are also common words (Weber, Koch, Fischer, Wolf). Fictional.",
+  "documents": [
+    "Peter Koch und seine Partnerin Maria Wolf wohnen an der Seestrasse 4 in 6300 Zug. Herr Koch ist Koch im Restaurant Fischer & Söhne. Frau Wolf hat bei der Krankenkasse Helvetia Plus die Policen-Nr. 88-776655-1. Der Weber-Verlag hat ihr am 30.06.2024 gekündigt; die Website www.weber-verlag-beispiel.ch nennt Peter als Ansprechperson. Telefon: +41 41 555 66 77."
+  ],
+  "expected": [
+    {"text": "Peter Koch", "type": "PERSON"},
+    {"text": "Maria Wolf", "type": "PERSON"},
+    {"text": "Peter", "type": "PERSON"},
+    {"text": "Seestrasse 4", "type": "ADDRESS"},
+    {"text": "6300", "type": "POSTAL_CODE"},
+    {"text": "Zug", "type": "CITY"},
+    {"text": "Restaurant Fischer & Söhne", "type": "ORGANIZATION"},
+    {"text": "Krankenkasse Helvetia Plus", "type": "ORGANIZATION"},
+    {"text": "88-776655-1", "type": "CUSTOMER_NUMBER"},
+    {"text": "Weber-Verlag", "type": "ORGANIZATION"},
+    {"text": "30.06.2024", "type": "DATE"},
+    {"text": "www.weber-verlag-beispiel.ch", "type": "URL"},
+    {"text": "+41 41 555 66 77", "type": "PHONE"}
+  ]
+}

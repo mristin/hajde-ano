@@ -1,0 +1,22 @@
+{
+  "name": "05-migration",
+  "description": "Migration office, permit numbers, countries, nationalities and a federal court reference. Fictional.",
+  "documents": [
+    "Herr Abdirahman Warsame Hirsi, somalischer Staatsangehöriger, geboren am 17.11.1990, reiste 2015 aus Kenia in die Schweiz ein. Das Migrationsamt des Kantons Zürich hat seine vorläufige Aufnahme (Ausweis F, ZEMIS 23456789.0) am 2. Mai 2024 aufgehoben. Gegen diesen Entscheid ist beim Bundesverwaltungsgericht eine Beschwerde hängig; das Bundesgericht entschied in einem ähnlichen Fall (2C_456/2023).\n\nRechtsanwältin lic. iur. Fatima Zahra El Idrissi, Kanzlei El Idrissi & Partner, Postfach 1234, 8021 Zürich, vertritt ihn. E-Mail: f.elidrissi@kanzlei-beispiel.ch."
+  ],
+  "expected": [
+    {"text": "Abdirahman Warsame Hirsi", "type": "PERSON"},
+    {"text": "somalischer", "type": "NATIONALITY"},
+    {"text": "17.11.1990", "type": "DATE_OF_BIRTH"},
+    {"text": "Kenia", "type": "COUNTRY"},
+    {"text": "Migrationsamt des Kantons Zürich", "type": "GOVERNMENT_AGENCY"},
+    {"text": "23456789.0", "type": "PERMIT_NUMBER"},
+    {"text": "2. Mai 2024", "type": "DATE"},
+    {"text": "2C_456/2023", "type": "CASE_NUMBER"},
+    {"text": "Fatima Zahra El Idrissi", "type": "PERSON"},
+    {"text": "El Idrissi & Partner", "type": "ORGANIZATION"},
+    {"text": "Postfach 1234", "type": "ADDRESS"},
+    {"text": "8021", "type": "POSTAL_CODE"},
+    {"text": "f.elidrissi@kanzlei-beispiel.ch", "type": "EMAIL"}
+  ]
+}

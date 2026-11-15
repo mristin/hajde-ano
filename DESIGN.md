@@ -1,4 +1,4 @@
-# Local Privacy Anonymizer — Implementation Brief
+# Hajde Ano — Implementation Brief
 
 ## Goal
 
@@ -377,20 +377,19 @@ Keep GGUF model files separate from the executable so that they can be memory-ma
 
 Windows distribution:
 
-LocalAnonymizer/
-  LocalAnonymizer.exe
+HajdeAno/
+  HajdeAno.exe
   models/
     Qwen3-8B-Q4_K_M.gguf
-  native/ (if required)
+  runtimes/win-x64/native/ (llama.cpp libraries)
 
 macOS distribution:
 
-LocalAnonymizer.app/
+Hajde Ano.app/
   Contents/
     MacOS/
-      LocalAnonymizer
-    Frameworks/
-      native libraries
+      HajdeAno
+      runtimes/osx-arm64/native/ (llama.cpp libraries)
     Resources/
       models/
         Qwen3-8B-Q4_K_M.gguf

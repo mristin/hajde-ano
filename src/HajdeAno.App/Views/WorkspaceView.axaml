@@ -1,0 +1,95 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:HajdeAno.App.ViewModels"
+    xmlns:views="using:HajdeAno.App.Views"
+    x:Class="HajdeAno.App.Views.WorkspaceView"
+    x:DataType="vm:WorkspaceViewModel"
+>
+    <Grid ColumnDefinitions="260,*" RowDefinitions="*,Auto">
+        <!-- Screen 1: cases -->
+        <Border
+            Grid.Column="0"
+            Grid.RowSpan="2"
+            Padding="12"
+            Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+        >
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Spacing="8">
+                    <TextBlock Classes="h2" Text="Cases" />
+                    <TextBox PlaceholderText="New case name" Text="{Binding NewCaseName}" />
+                    <Button
+                        Content="Create case"
+                        Command="{Binding CreateCaseCommand}"
+                        HorizontalAlignment="Stretch"
+                    />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
+                    <Button
+                        Content="Delete case"
+                        Command="{Binding DeleteCaseCommand}"
+                        HorizontalAlignment="Stretch"
+                    />
+                    <Button
+                        Content="Lock"
+                        Command="{Binding LockCommand}"
+                        HorizontalAlignment="Stretch"
+                    />
+                </StackPanel>
+                <ListBox
+                    ItemsSource="{Binding Cases}"
+                    SelectedItem="{Binding SelectedCase}"
+                    Margin="0,12,0,0"
+                >
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:CaseItemViewModel">
+                            <StackPanel>
+                                <TextBlock
+                                    Text="{Binding Name}"
+                                    FontWeight="SemiBold"
+                                    TextTrimming="CharacterEllipsis"
+                                />
+                                <TextBlock
+                                    Text="{Binding Details}"
+                                    FontSize="11"
+                                    Opacity="0.7"
+                                    TextTrimming="CharacterEllipsis"
+                                />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <DockPanel Grid.Column="1" Margin="12,8,12,0">
+            <TextBlock
+                DockPanel.Dock="Top"
+                Classes="h1"
+                Text="{Binding CaseTitle}"
+                Margin="4,0,0,4"
+            />
+            <TabControl SelectedIndex="{Binding SelectedTab}">
+                <TabItem Header="Input">
+                    <views:InputView DataContext="{Binding Input}" />
+                </TabItem>
+                <TabItem Header="Review">
+                    <views:ReviewView DataContext="{Binding Review}" />
+                </TabItem>
+                <TabItem Header="Restore">
+                    <views:RestoreView DataContext="{Binding Restore}" />
+                </TabItem>
+                <TabItem Header="Entities">
+                    <views:EntitiesView DataContext="{Binding Entities}" />
+                </TabItem>
+                <TabItem Header="Settings">
+                    <views:SettingsView DataContext="{Binding Settings}" />
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+
+        <Border Grid.Column="1" Grid.Row="1" Padding="16,6">
+            <TextBlock Text="{Binding Status}" Classes="hint" />
+        </Border>
+    </Grid>
+</UserControl>

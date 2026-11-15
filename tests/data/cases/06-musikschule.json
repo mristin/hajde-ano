@@ -1,0 +1,27 @@
+{
+  "name": "06-musikschule",
+  "description": "Fee dispute with a music school, used for the README screenshots. Entirely fictional, unrelated to any real case.",
+  "documents": [
+    "Jonas Brändli aus Luzern hat seine Tochter Mia Brändli im August 2024 bei der Musikschule Klangwerk GmbH für Geigenunterricht angemeldet. Die Lehrerin Elif Kaya hat ab dem 2. September 2024 nur vier von zwölf Lektionen erteilt.\n\nTrotzdem stellt die Musikschule Klangwerk GmbH mit der Rechnungsnummer RG-2024-5531 den vollen Betrag von CHF 1'240.00 in Rechnung. Herr Brändli hat bereits CHF 400.00 auf das Konto CH56 0483 5012 3456 7800 9 überwiesen. Er ist unter jonas.braendli@example.org oder 041 987 65 43 erreichbar und wohnt an der Hirschmattstrasse 21, 6003 Luzern.\n\nFrau Kaya bestätigt per E-Mail, dass Mia den Unterricht regelmässig besuchen wollte."
+  ],
+  "expected": [
+    {"text": "Jonas Brändli", "type": "PERSON"},
+    {"text": "Brändli", "type": "PERSON"},
+    {"text": "Mia Brändli", "type": "PERSON"},
+    {"text": "Mia", "type": "PERSON"},
+    {"text": "Elif Kaya", "type": "PERSON"},
+    {"text": "Kaya", "type": "PERSON"},
+    {"text": "Luzern", "type": "CITY"},
+    {"text": "Musikschule Klangwerk GmbH", "type": "ORGANIZATION"},
+    {"text": "August 2024", "type": "DATE"},
+    {"text": "2. September 2024", "type": "DATE"},
+    {"text": "RG-2024-5531", "type": "CUSTOMER_NUMBER"},
+    {"text": "CHF 1'240.00", "type": "AMOUNT"},
+    {"text": "CHF 400.00", "type": "AMOUNT"},
+    {"text": "CH56 0483 5012 3456 7800 9", "type": "IBAN"},
+    {"text": "jonas.braendli@example.org", "type": "EMAIL"},
+    {"text": "041 987 65 43", "type": "PHONE"},
+    {"text": "Hirschmattstrasse 21", "type": "ADDRESS"},
+    {"text": "6003", "type": "POSTAL_CODE"}
+  ]
+}

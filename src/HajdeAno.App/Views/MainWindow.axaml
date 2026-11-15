@@ -1,0 +1,25 @@
+<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:HajdeAno.App.ViewModels"
+    xmlns:views="using:HajdeAno.App.Views"
+    x:Class="HajdeAno.App.Views.MainWindow"
+    x:DataType="vm:MainWindowViewModel"
+    Title="Hajde Ano"
+    Icon="/Assets/hajde-ano.ico"
+    Width="1280"
+    Height="800"
+    MinWidth="900"
+    MinHeight="600"
+    WindowStartupLocation="CenterScreen"
+>
+    <Window.DataTemplates>
+        <DataTemplate DataType="vm:UnlockViewModel">
+            <views:UnlockView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:WorkspaceViewModel">
+            <views:WorkspaceView />
+        </DataTemplate>
+    </Window.DataTemplates>
+    <ContentControl Content="{Binding Current}" />
+</Window>

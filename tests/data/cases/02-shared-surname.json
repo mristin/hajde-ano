@@ -1,0 +1,25 @@
+{
+  "name": "02-shared-surname",
+  "description": "Several people sharing a surname, a court reference and an agency abbreviation. Fictional.",
+  "documents": [
+    "Familie Nguyen-Okafor lebt in 3011 Bern. Herr Thanh Nguyen-Okafor arbeitet bei der Velo Kurier AG, seine Frau Chiamaka Nguyen-Okafor ist arbeitslos und erhält Leistungen der Sozialversicherungsanstalt Bern (SVA). Die SVA hat am 5. Januar 2025 eine Rückforderung über CHF 1'280.50 verfügt.\n\nDas Regionalgericht Bern-Mittelland führt das Verfahren unter der Geschäftsnummer CIV 25 1234. Frau Nguyen-Okafor hat Ausweis B Nr. 12345678.",
+    "Herr Nguyen-Okafor ruft die SVA an. Chiamaka möchte wissen, ob die Frist bis 28.02.2025 läuft. Thanh Nguyen-Okafor erklärt, dass die Velo Kurier AG den Lohn verspätet zahlte."
+  ],
+  "expected": [
+    {"text": "Nguyen-Okafor", "type": "FAMILY"},
+    {"text": "Thanh Nguyen-Okafor", "type": "PERSON"},
+    {"text": "Chiamaka Nguyen-Okafor", "type": "PERSON"},
+    {"text": "Chiamaka", "type": "PERSON"},
+    {"text": "3011", "type": "POSTAL_CODE"},
+    {"text": "Bern", "type": "CITY"},
+    {"text": "Velo Kurier AG", "type": "ORGANIZATION"},
+    {"text": "Sozialversicherungsanstalt Bern", "type": "GOVERNMENT_AGENCY"},
+    {"text": "SVA", "type": "ORG_ABBREVIATION"},
+    {"text": "5. Januar 2025", "type": "DATE"},
+    {"text": "CHF 1'280.50", "type": "AMOUNT"},
+    {"text": "Regionalgericht Bern-Mittelland", "type": "COURT"},
+    {"text": "CIV 25 1234", "type": "CASE_NUMBER"},
+    {"text": "12345678", "type": "PERMIT_NUMBER"},
+    {"text": "28.02.2025", "type": "DATE"}
+  ]
+}

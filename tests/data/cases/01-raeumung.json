@@ -1,0 +1,27 @@
+{
+  "name": "01-raeumung",
+  "description": "Eviction, foundation, housing cooperative, debt collection, Swiss address. All data is fictional.",
+  "documents": [
+    "Anna Müller wohnt seit dem 1. März 2019 an der Bahnhofstrasse 12, 8001 Zürich. Die Stiftung Beispiel hat ihr damals die Wohnung vermittelt. Die Verwaltung der Wohnbaugenossenschaft Sonnenhalde verlangt nun CHF 4'500.– für die Räumung.\n\nFrau Müller hat am 14.02.2024 einen Zahlungsbefehl erhalten (Betreibung Nr. 2024-118734 des Betreibungsamts Zürich 1). Ihr Sohn Luca Müller-Bianchi (geb. 03.07.2008) lebt bei ihr. Anna ist unter 079 123 45 67 oder anna.mueller@example.ch erreichbar.",
+    "Sehr geehrte Damen und Herren der Wohnbaugenossenschaft Sonnenhalde\n\nIch, Anna Müller, bestreite die Forderung von CHF 4'500.– vollumfänglich. Die Stiftung Beispiel kann bestätigen, dass die Wohnung bei Übergabe beschädigt war. Bitte überweisen Sie die Kaution auf mein Konto IBAN CH93 0076 2011 6238 5295 7.\n\nFreundliche Grüsse\nAnna Müller"
+  ],
+  "expected": [
+    {"text": "Anna Müller", "type": "PERSON"},
+    {"text": "Anna", "type": "PERSON"},
+    {"text": "Müller", "type": "PERSON"},
+    {"text": "Luca Müller-Bianchi", "type": "PERSON"},
+    {"text": "Bahnhofstrasse 12", "type": "ADDRESS"},
+    {"text": "8001", "type": "POSTAL_CODE"},
+    {"text": "Zürich", "type": "CITY"},
+    {"text": "Stiftung Beispiel", "type": "ORGANIZATION"},
+    {"text": "Wohnbaugenossenschaft Sonnenhalde", "type": "ORGANIZATION"},
+    {"text": "CHF 4'500.–", "type": "AMOUNT"},
+    {"text": "14.02.2024", "type": "DATE"},
+    {"text": "1. März 2019", "type": "DATE"},
+    {"text": "2024-118734", "type": "DEBT_COLLECTION_REF"},
+    {"text": "03.07.2008", "type": "DATE_OF_BIRTH"},
+    {"text": "079 123 45 67", "type": "PHONE"},
+    {"text": "anna.mueller@example.ch", "type": "EMAIL"},
+    {"text": "CH93 0076 2011 6238 5295 7", "type": "IBAN"}
+  ]
+}

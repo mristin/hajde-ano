@@ -1,0 +1,85 @@
+name: Release
+
+# Builds the self-contained packages for Linux, Windows and macOS and attaches them to the
+# GitHub release. The model weights are never packaged; see README.md.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and upload to
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  package:
+    name: Package (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+            rids: linux-x64
+          - name: windows
+            os: windows-latest
+            rids: win-x64 win-arm64
+          - name: macos
+            os: macos-latest
+            rids: osx-arm64 osx-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Run tests
+        run: dotnet test HajdeAno.slnx --configuration Release
+
+      - name: Publish and package
+        shell: bash
+        run: >
+          python dev/publish.py
+          --rid ${{ matrix.rids }}
+          --version "${TAG}"
+          --self-test tests/data/models/stories260K.gguf
+
+      - name: Attach packages to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(artifacts/*.zip artifacts/*.tar.gz)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No packages were produced" >&2
+            exit 1
+          fi
+          gh release upload "${TAG}" "${files[@]}" --clobber
+
+      - name: Keep the packages as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.name }}
+          path: |
+            artifacts/*.zip
+            artifacts/*.tar.gz
+          if-no-files-found: error

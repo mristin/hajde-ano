@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>hajde-ano-cli</AssemblyName>
+    <RootNamespace>HajdeAno.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HajdeAno.Core\HajdeAno.Core.csproj" />
+    <ProjectReference Include="..\HajdeAno.Llm\HajdeAno.Llm.csproj" />
+  </ItemGroup>
+</Project>

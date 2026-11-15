@@ -1,0 +1,176 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:HajdeAno.App.ViewModels"
+    xmlns:c="using:HajdeAno.App.Controls"
+    x:Class="HajdeAno.App.Views.ReviewView"
+    x:DataType="vm:ReviewViewModel"
+>
+    <Grid RowDefinitions="Auto,*,Auto" Margin="4,8">
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,8">
+            <TextBlock
+                Classes="hint"
+                Text="Run a detection on the Input tab first."
+                IsVisible="{Binding !HasDocument}"
+            />
+            <TextBlock
+                Text="{Binding ReviewSummary}"
+                FontWeight="SemiBold"
+                IsVisible="{Binding HasDocument}"
+            />
+            <ItemsControl ItemsSource="{Binding Warnings}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock
+                            Text="{Binding StringFormat='⚠ {0}'}"
+                            TextWrapping="Wrap"
+                            Foreground="#B76E00"
+                        />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,6,*,6,400">
+            <DockPanel Grid.Column="0">
+                <TextBlock DockPanel.Dock="Top" Classes="h2" Text="Original" Margin="0,0,0,4" />
+                <Border Classes="card">
+                    <ScrollViewer>
+                        <c:HighlightedTextBlock
+                            Segments="{Binding OriginalSegments}"
+                            TextWrapping="Wrap"
+                            FontSize="14"
+                            SelectionStart="{Binding SelectionStart, Mode=TwoWay}"
+                            SelectionEnd="{Binding SelectionEnd, Mode=TwoWay}"
+                        />
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Classes="h2" Text="Anonymized" Margin="0,0,0,4" />
+                <Border Classes="card">
+                    <ScrollViewer>
+                        <c:HighlightedTextBlock
+                            Segments="{Binding AnonymizedSegments}"
+                            TextWrapping="Wrap"
+                            FontSize="14"
+                        />
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+            <DockPanel Grid.Column="4">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Button
+                        DockPanel.Dock="Right"
+                        Content="Approve all"
+                        Command="{Binding ApproveAllCommand}"
+                        Padding="8,2"
+                    />
+                    <TextBlock Classes="h2" Text="Detected entities" VerticalAlignment="Center" />
+                </DockPanel>
+                <ListBox ItemsSource="{Binding Groups}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DetectionGroupViewModel">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Text="{Binding Text}"
+                                    FontWeight="SemiBold"
+                                    TextWrapping="Wrap"
+                                />
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Text="{Binding CountText}"
+                                    Opacity="0.7"
+                                    Margin="6,0,0,0"
+                                />
+                                <StackPanel
+                                    Grid.Row="1"
+                                    Grid.ColumnSpan="2"
+                                    Orientation="Horizontal"
+                                    Spacing="6"
+                                >
+                                    <TextBlock
+                                        Text="{Binding Placeholder}"
+                                        Foreground="#2563EB"
+                                        FontFamily="monospace"
+                                    />
+                                    <TextBlock Text="{Binding StatusText}" Opacity="0.7" />
+                                    <TextBlock
+                                        Text="{Binding Sources}"
+                                        Opacity="0.5"
+                                        FontSize="11"
+                                        VerticalAlignment="Center"
+                                    />
+                                </StackPanel>
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Grid.ColumnSpan="2"
+                                    Text="{Binding Note}"
+                                    FontSize="11"
+                                    Foreground="#B76E00"
+                                    TextWrapping="Wrap"
+                                    IsVisible="{Binding Note, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                />
+                                <StackPanel
+                                    Grid.Row="3"
+                                    Grid.ColumnSpan="2"
+                                    Orientation="Horizontal"
+                                    Spacing="6"
+                                    Margin="0,4,0,0"
+                                >
+                                    <ComboBox
+                                        ItemsSource="{Binding AllCategories}"
+                                        SelectedItem="{Binding Category}"
+                                        MinWidth="150"
+                                        FontSize="12"
+                                    />
+                                    <Button
+                                        Content="✓ Anonymize"
+                                        Command="{Binding ApproveCommand}"
+                                        FontSize="12"
+                                        Padding="6,2"
+                                    />
+                                    <Button
+                                        Content="✗ Keep"
+                                        Command="{Binding RejectCommand}"
+                                        FontSize="12"
+                                        Padding="6,2"
+                                    />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Spacing="8" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Select text in the original, then:" VerticalAlignment="Center" />
+                <ComboBox
+                    ItemsSource="{Binding AllCategories}"
+                    SelectedItem="{Binding ManualCategory}"
+                    MinWidth="180"
+                />
+                <Button
+                    Content="Anonymize selection"
+                    Command="{Binding AnonymizeSelectionCommand}"
+                />
+                <TextBlock Text="{Binding Message}" VerticalAlignment="Center" Classes="hint" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <CheckBox
+                    IsChecked="{Binding Confirmed}"
+                    Content="I have reviewed the anonymized text; it contains no private information."
+                />
+                <Button
+                    Classes="accent"
+                    Content="Copy anonymized text"
+                    Command="{Binding CopyCommand}"
+                />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

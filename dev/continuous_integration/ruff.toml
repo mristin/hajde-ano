@@ -1,0 +1,19 @@
+# Ruff configuration for the Python development scripts.
+line-length = 88
+target-version = "py310"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "D", "PL", "RUF", "SIM", "BLE"]
+ignore = [
+    "D203",    # one blank line before class docstring (conflicts with D211)
+    "D212",    # summary may start on the second line of a docstring
+    "UP007",   # keep Optional[...]
+    "UP045",
+    "PLR0911", # too many returns
+    "PLR0912", # too many branches
+    "PLR0915", # too many statements
+    "PLR2004", # magic values are fine in small scripts
+    "E501",    # line length is handled by black
+    "UP006",   # keep typing.List etc. for readability across versions
+    "UP035",
+]
