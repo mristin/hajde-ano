@@ -82,6 +82,12 @@ public sealed partial class UnlockViewModel : ViewModelBase
         {
             Error = "Wrong password.";
         }
+        catch (VaultCorruptException e)
+        {
+            // Our own messages only; they contain no private data.
+            Error =
+                $"The vault is damaged and cannot be opened: {e.Message}. Restore the folder from a backup.";
+        }
         catch (Exception e) when (e is IOException or ArgumentException or InvalidDataException)
         {
             Error = $"Could not open the vault ({e.GetType().Name}).";

@@ -33,5 +33,8 @@ public interface IUiServices
 
     Task<string?> PickTextFileAsync();
 
+    /// <summary>Ask where to save a text file; returns null if cancelled.</summary>
+    Task<string?> PickSaveTextFileAsync(string suggestedName);
+
     Task<string?> PickModelFileAsync();
 }

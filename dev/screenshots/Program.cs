@@ -16,7 +16,11 @@ internal sealed class OracleExtractor(IReadOnlyList<ExpectedEntity> expected) : 
 {
     public int MaxChunkChars => 4000;
 
-    public Task<string> ExtractRawAsync(string text, CancellationToken cancellationToken) =>
+    public Task<string> ExtractRawAsync(
+        string text,
+        IProgress<InferenceProgress>? progress,
+        CancellationToken cancellationToken
+    ) =>
         Task.FromResult(
             JsonSerializer.Serialize(
                 expected
@@ -33,6 +37,9 @@ internal sealed class NoUi : IUiServices
     public Task<string?> PickTextFileAsync() => Task.FromResult<string?>(null);
 
     public Task<string?> PickModelFileAsync() => Task.FromResult<string?>(null);
+
+    public Task<string?> PickSaveTextFileAsync(string suggestedName) =>
+        Task.FromResult<string?>(null);
 }
 
 internal static class Program
@@ -148,8 +155,13 @@ internal static class Program
             c.Name.Contains("Musikschule", StringComparison.Ordinal)
         );
 
-        // 2. Review screen.
+        // 2. Input screen, with the confirmation shown when replacing existing text.
         workspace.Input.Text = synthetic.Documents[0];
+        await workspace.Input.NewCommand.ExecuteAsync(null);
+        Capture(window, Path.Combine(outDir, "input.png"));
+        workspace.Input.CancelConfirmCommand.Execute(null);
+
+        // 3. Review screen.
         await workspace.Input.DetectCommand.ExecuteAsync(null);
         Pump();
         foreach (var g in workspace.Review.Groups.Take(3))
@@ -164,7 +176,7 @@ internal static class Program
         workspace.Review.Confirmed = true;
         await workspace.Review.CopyCommand.ExecuteAsync(null);
 
-        // 3. Restore screen with an answer from an "online service".
+        // 4. Restore screen with an answer from an "online service".
         workspace.Restore.Input =
             "Sehr geehrte Damen und Herren der [ORG_1]\n\n"
             + "Hiermit bestreite ich, [PERSON_1], Ihre Rechnung [CUSTOMER_ID_1] über [AMOUNT_1]. "
@@ -175,7 +187,7 @@ internal static class Program
         workspace.SelectedTab = WorkspaceViewModel.RestoreTab;
         Capture(window, Path.Combine(outDir, "restore.png"));
 
-        // 4. Entities of the case.
+        // 5. Entities of the case.
         workspace.SelectedTab = WorkspaceViewModel.EntitiesTab;
         Capture(window, Path.Combine(outDir, "entities.png"));
 

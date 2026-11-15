@@ -38,6 +38,11 @@ public sealed class AnalysisResult
     public string AnonymizedText => Anonymizer.Apply(Text, Detections);
 }
 
+/// <summary>Progress of an analysis for display.</summary>
+/// <param name="Message">What is happening right now (no private content).</param>
+/// <param name="Fraction">Estimated overall progress in [0, 1], or null if unknown.</param>
+public sealed record AnalysisProgress(string Message, double? Fraction);
+
 /// <summary>The anonymization pipeline (see DESIGN.md, "Anonymization Pipeline").</summary>
 public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions options)
 {
@@ -75,14 +80,15 @@ public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions
     public async Task<AnalysisResult> AnalyzeAsync(
         string text,
         CaseDictionary dictionary,
-        IProgress<string>? progress,
+        IProgress<AnalysisProgress>? progress,
         CancellationToken cancellationToken
     )
     {
         var result = new AnalysisResult { Text = text, Detections = [] };
         var candidates = new List<Detection>();
+        var passes = extractor is not null && options.SecondPass ? 2 : 1;
 
-        progress?.Report("Running pattern detection…");
+        progress?.Report(new AnalysisProgress("Running pattern detection…", 0));
         candidates.AddRange(RegexDetector.Detect(text));
 
         if (extractor is not null)
@@ -91,11 +97,11 @@ public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions
             var (llmDetections, stats) = await llm.DetectAsync(
                     text,
                     DetectionSource.Llm,
-                    new Progress<(int Done, int Total)>(p =>
-                        progress?.Report(
-                            $"Local model: chunk {Math.Min(p.Done + 1, p.Total)} of {p.Total}…"
-                        )
-                    ),
+                    progress is null
+                        ? null
+                        : new SyncProgress<ChunkProgress>(p =>
+                            progress.Report(DescribePass(0, passes, p))
+                        ),
                     cancellationToken
                 )
                 .ConfigureAwait(false);
@@ -110,7 +116,9 @@ public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions
             );
         }
 
-        progress?.Report("Matching the case dictionary…");
+        progress?.Report(
+            new AnalysisProgress("Matching the case dictionary…", passes == 2 ? 0.5 : 0.95)
+        );
         candidates.AddRange(DictionaryDetections(text, dictionary));
         candidates.AddRange(FuzzyDetections(text, dictionary));
 
@@ -118,7 +126,6 @@ public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions
 
         if (extractor is not null && options.SecondPass)
         {
-            progress?.Report("Second pass over the anonymized text…");
             var anonymized = Apply(text, result.Detections);
             var started = System.Diagnostics.Stopwatch.StartNew();
 
@@ -126,6 +133,11 @@ public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions
             // locate those strings in the original, outside of existing detections.
             var (leftovers, chunks, invalid) = await CollectLeftoversAsync(
                     anonymized,
+                    progress is null
+                        ? null
+                        : new SyncProgress<ChunkProgress>(p =>
+                            progress.Report(DescribePass(1, passes, p))
+                        ),
                     cancellationToken
                 )
                 .ConfigureAwait(false);
@@ -155,12 +167,48 @@ public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions
             }
         }
 
-        progress?.Report("Done.");
+        progress?.Report(new AnalysisProgress("Done.", 1));
         return result;
+    }
+
+    /// <summary>Describe the progress of a model pass and estimate the overall fraction.</summary>
+    internal static AnalysisProgress DescribePass(int pass, int passes, ChunkProgress p)
+    {
+        var label =
+            passes == 1 ? "Detecting"
+            : pass == 0 ? "Pass 1 of 2: detecting"
+            : "Pass 2 of 2: checking the anonymized text";
+        var chunk = p.Chunks > 1 ? $", part {p.Chunk + 1} of {p.Chunks}" : "";
+
+        // Reading the prompt is measured exactly; the length of the answer is unknown in
+        // advance, so writing approaches the rest asymptotically.
+        double within;
+        string what;
+        if (p.Inference is null)
+        {
+            within = 0;
+            what = "starting…";
+        }
+        else if (p.Inference.GeneratedTokens == 0)
+        {
+            var read = (double)p.Inference.PromptProcessed / Math.Max(1, p.Inference.PromptTokens);
+            within = 0.4 * read;
+            what =
+                $"reading the text: {p.Inference.PromptProcessed} of {p.Inference.PromptTokens} tokens ({read * 100:F0} %)…";
+        }
+        else
+        {
+            within = 0.4 + (0.55 * (1 - Math.Exp(-p.Inference.GeneratedTokens / 150.0)));
+            what = $"writing the answer ({p.Inference.GeneratedTokens} tokens)…";
+        }
+
+        var fraction = (pass + ((p.Chunk + within) / Math.Max(1, p.Chunks))) / passes;
+        return new AnalysisProgress($"{label}{chunk}: {what}", Math.Clamp(fraction, 0, 0.99));
     }
 
     private async Task<(List<RawEntity> Leftovers, int Chunks, int Invalid)> CollectLeftoversAsync(
         string anonymized,
+        SyncProgress<ChunkProgress>? progress,
         CancellationToken cancellationToken
     )
     {
@@ -171,10 +219,20 @@ public sealed class Anonymizer(IEntityExtractor? extractor, AnonymizationOptions
             Math.Min(400, extractor.MaxChunkChars / 8)
         );
         var invalid = 0;
-        foreach (var chunk in chunks)
+        for (var i = 0; i < chunks.Count; i++)
         {
+            var index = i;
+            progress?.Report(new ChunkProgress(index, chunks.Count, null));
             var output = await extractor
-                .ExtractRawAsync(chunk.Text, cancellationToken)
+                .ExtractRawAsync(
+                    chunks[i].Text,
+                    progress is null
+                        ? null
+                        : new SyncProgress<InferenceProgress>(p =>
+                            progress.Report(new ChunkProgress(index, chunks.Count, p))
+                        ),
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
             var parsed = LlmResponseParser.Parse(output);
             if (!parsed.WasValidJson)

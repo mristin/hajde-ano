@@ -40,6 +40,8 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
     private readonly LLamaWeights _weights;
     private readonly ModelParams _params;
     private readonly SemaphoreSlim _oneAtATime = new(1, 1);
+    private readonly List<LLamaToken> _cachedTokens = [];
+    private LLamaContext? _context;
 
     private LlamaEntityExtractor(LlamaOptions options, LLamaWeights weights, ModelParams parameters)
     {
@@ -47,6 +49,9 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
         _weights = weights;
         _params = parameters;
     }
+
+    /// <summary>Path of the loaded model.</summary>
+    public string ModelPath => _options.ModelPath;
 
     /// <summary>Approximate characters per chunk derived from the context size.</summary>
     public int MaxChunkChars =>
@@ -79,6 +84,7 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
     /// <summary>Load the model. Throws <see cref="FileNotFoundException"/> if it is missing.</summary>
     public static async Task<LlamaEntityExtractor> LoadAsync(
         LlamaOptions options,
+        IProgress<float>? loadProgress = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -101,7 +107,7 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
             BatchSize = 512,
         };
         var weights = await LLamaWeights
-            .LoadFromFileAsync(parameters, cancellationToken)
+            .LoadFromFileAsync(parameters, cancellationToken, loadProgress)
             .ConfigureAwait(false);
         return new LlamaEntityExtractor(options, weights, parameters);
     }
@@ -112,19 +118,69 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
             ? LlmPrompt.BuildChatMlPrompt(text)
             : LlmPrompt.SystemPrompt + "\n\nText:\n" + text + "\n\nJSON:\n";
 
-    public async Task<string> ExtractRawAsync(string text, CancellationToken cancellationToken)
+    /// <summary>Prompt tokens decoded per step; small enough to report progress often.</summary>
+    private const int PromptBatch = 64;
+
+    /// <summary>
+    /// Run the model on the text. The prompt is decoded in small batches (so that progress
+    /// can be reported while the text is read), and the KV cache of the previous call is
+    /// reused for the common prefix (the fixed system prompt and example), so that only
+    /// the new text has to be processed.
+    /// </summary>
+    public async Task<string> ExtractRawAsync(
+        string text,
+        IProgress<InferenceProgress>? progress,
+        CancellationToken cancellationToken
+    )
     {
         await _oneAtATime.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var prompt = BuildPrompt(text);
-            var promptTokens = _weights.Tokenize(prompt, true, true, Encoding.UTF8).Length;
-            var budget = (int)_options.ContextSize - promptTokens - 8;
+            _context ??= _weights.CreateContext(_params);
+            var context = _context;
+            var tokens = context.Tokenize(prompt, true, true);
+            var budget = (int)_options.ContextSize - tokens.Length - 8;
             if (budget < 64)
             {
                 throw new InvalidOperationException(
-                    $"The chunk does not fit into the context ({promptTokens} prompt tokens, context {_options.ContextSize}). Increase the context size."
+                    $"The chunk does not fit into the context ({tokens.Length} prompt tokens, context {_options.ContextSize}). Increase the context size."
                 );
+            }
+
+            // Reuse the cached prefix; at least one token must be decoded to get logits.
+            var keep = 0;
+            while (
+                keep < _cachedTokens.Count
+                && keep < tokens.Length - 1
+                && _cachedTokens[keep] == tokens[keep]
+            )
+            {
+                keep++;
+            }
+
+            context.NativeHandle.MemorySequenceRemove(LLamaSeqId.Zero, keep, -1);
+            _cachedTokens.RemoveRange(keep, _cachedTokens.Count - keep);
+
+            progress?.Report(new InferenceProgress(tokens.Length, keep, 0));
+            var batch = new LLamaBatch();
+            for (var start = keep; start < tokens.Length; start += PromptBatch)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var end = Math.Min(tokens.Length, start + PromptBatch);
+                batch.Clear();
+                for (var i = start; i < end; i++)
+                {
+                    batch.Add(tokens[i], i, LLamaSeqId.Zero, i == tokens.Length - 1);
+                }
+
+                await DecodeOrThrowAsync(context, batch, cancellationToken).ConfigureAwait(false);
+                for (var i = start; i < end; i++)
+                {
+                    _cachedTokens.Add(tokens[i]);
+                }
+
+                progress?.Report(new InferenceProgress(tokens.Length, end, 0));
             }
 
             using var sampling = new DefaultSamplingPipeline
@@ -133,25 +189,39 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
                 Grammar = new Grammar(LlmPrompt.Grammar, "root"),
                 Seed = 42,
             };
-            var inference = new InferenceParams
-            {
-                MaxTokens = Math.Min(budget, _options.MaxOutputTokens),
-                AntiPrompts = ["<|im_end|>"],
-                SamplingPipeline = sampling,
-            };
-
-            var executor = new StatelessExecutor(_weights, _params) { ApplyTemplate = false };
+            var decoder = new StreamingTokenDecoder(context);
             var sb = new StringBuilder();
-            await foreach (
-                var piece in executor
-                    .InferAsync(prompt, inference, cancellationToken)
-                    .ConfigureAwait(false)
-            )
+            var maxTokens = Math.Min(budget, _options.MaxOutputTokens);
+            var position = tokens.Length;
+            var logitsIndex = batch.TokenCount - 1;
+            for (var generated = 1; generated <= maxTokens; generated++)
             {
-                sb.Append(piece);
+                cancellationToken.ThrowIfCancellationRequested();
+                var token = sampling.Sample(context.NativeHandle, logitsIndex);
+                if (token.IsEndOfGeneration(context.Vocab))
+                {
+                    break;
+                }
+
+                decoder.Add(token);
+                sb.Append(decoder.Read());
+                progress?.Report(new InferenceProgress(tokens.Length, tokens.Length, generated));
+
+                batch.Clear();
+                batch.Add(token, position++, LLamaSeqId.Zero, true);
+                logitsIndex = 0;
+                await DecodeOrThrowAsync(context, batch, cancellationToken).ConfigureAwait(false);
             }
 
+            // Only the prompt is a reusable prefix; the generated part is dropped next time.
             return sb.ToString().Replace("<|im_end|>", "", StringComparison.Ordinal);
+        }
+        catch
+        {
+            // After an error or cancellation the cache state is unknown: start afresh.
+            _cachedTokens.Clear();
+            _context?.NativeHandle.MemorySequenceRemove(LLamaSeqId.Zero, 0, -1);
+            throw;
         }
         finally
         {
@@ -159,8 +229,22 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
         }
     }
 
+    private static async Task DecodeOrThrowAsync(
+        LLamaContext context,
+        LLamaBatch batch,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await context.DecodeAsync(batch, cancellationToken).ConfigureAwait(false);
+        if (result != DecodeResult.Ok)
+        {
+            throw new InvalidOperationException($"Decoding failed: {result}");
+        }
+    }
+
     public void Dispose()
     {
+        _context?.Dispose();
         _weights.Dispose();
         _oneAtATime.Dispose();
     }

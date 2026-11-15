@@ -127,8 +127,14 @@ one inference runs at a time.
   an OS-level network sandbox (e.g. with the network disabled).
 * Cases and mappings are encrypted at rest with AES-256-GCM, using a key derived from
   your password (PBKDF2-HMAC-SHA256, 600 000 iterations). The key is only kept in memory.
+* The text you are working on is saved automatically per case, encrypted, inside the
+  case. Only *Save as…* writes it to a file outside the vault (unencrypted). Deleting a
+  case deletes its text and its key, so leftover copies of the file can't be decrypted.
+* File names inside the vault are keyed hashes and reveal nothing; restoring an old copy
+  of a case file is detected.
 * No logging of texts, names or mappings, and no plaintext temporary files.
-* Only the text you approved on the *Review* screen is ever exported (clipboard).
+* Only the text you approved on the *Review* screen is ever exported (clipboard). The
+  restored answer contains the original names; it is copied only when you ask for it.
 
 See [docs/privacy-architecture.md](docs/privacy-architecture.md) for details.
 
@@ -143,10 +149,14 @@ synthetic data:
 
 ```sh
 dotnet run --project src/HajdeAno.Cli -- extract --model models/Qwen3-8B-Q4_K_M.gguf case.txt
-dotnet run --project src/HajdeAno.Cli -- anonymize --model models/Qwen3-8B-Q4_K_M.gguf --save-dictionary dict.json case.txt
-dotnet run --project src/HajdeAno.Cli -- restore --dictionary dict.json answer.txt
+dotnet run --project src/HajdeAno.Cli -- anonymize --model models/Qwen3-8B-Q4_K_M.gguf --save-dictionary case.dict case.txt
+dotnet run --project src/HajdeAno.Cli -- restore --dictionary case.dict answer.txt
 dotnet run --project src/HajdeAno.Cli -- evaluate --model models/Qwen3-8B-Q4_K_M.gguf
 ```
+
+The dictionary file maps names to placeholders, so the CLI always encrypts it
+(AES-256-GCM with a key derived from a password, which the CLI asks for). It never writes
+the mappings unencrypted.
 
 ## Contributing
 

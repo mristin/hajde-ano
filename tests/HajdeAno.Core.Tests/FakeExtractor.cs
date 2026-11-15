@@ -10,7 +10,11 @@ internal sealed class FakeExtractor(Func<string, string> respond, int maxChunkCh
 
     public int MaxChunkChars => maxChunkChars;
 
-    public Task<string> ExtractRawAsync(string text, CancellationToken cancellationToken)
+    public Task<string> ExtractRawAsync(
+        string text,
+        IProgress<InferenceProgress>? progress,
+        CancellationToken cancellationToken
+    )
     {
         Calls.Add(text);
         return Task.FromResult(respond(text));

@@ -75,6 +75,21 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isConfirmingDelete;
 
+    /// <summary>
+    /// While the detection runs, the case cannot be switched, created, deleted or locked,
+    /// so that its result can only ever be saved into the case it was computed for.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSwitchCase))]
+    [NotifyCanExecuteChangedFor(
+        nameof(DeleteCaseCommand),
+        nameof(CreateCaseCommand),
+        nameof(LockCommand)
+    )]
+    private bool _isDetecting;
+
+    public bool CanSwitchCase => !IsDetecting;
+
     public bool HasCase => SelectedCase is not null;
 
     public string CaseTitle => SelectedCase?.Name ?? "No case selected";
@@ -91,6 +106,7 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
         }
 
         IsConfirmingDelete = false;
+        Input.LoadDraft(value?.File);
         Review.Clear();
         Restore.Clear();
         Entities.Reload();
@@ -104,7 +120,11 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
             return;
         }
 
-        var (cases, unreadable) = vault.LoadAll();
+        // The case objects are re-read from disk below; persist the draft first.
+        Input.FlushDraft();
+
+        var loaded = vault.LoadAll();
+        var cases = loaded.Cases;
         Cases.Clear();
         foreach (var c in cases)
         {
@@ -112,9 +132,15 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
         }
 
         SelectedCase = Cases.FirstOrDefault(c => c.File.Id == selectId) ?? Cases.FirstOrDefault();
-        if (unreadable > 0)
+        if (loaded.Unreadable > 0)
         {
-            Status = $"{unreadable} case file(s) could not be decrypted and were skipped.";
+            Status = $"{loaded.Unreadable} case file(s) could not be decrypted and were skipped.";
+        }
+
+        if (loaded.Outdated > 0)
+        {
+            Status =
+                $"{loaded.Outdated} case file(s) are older than their last saved version (restored from a backup or tampered with?) and were skipped.";
         }
     }
 
@@ -141,7 +167,7 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
         }
     }
 
-    private bool CanCreateCase() => !string.IsNullOrWhiteSpace(NewCaseName);
+    private bool CanCreateCase() => !IsDetecting && !string.IsNullOrWhiteSpace(NewCaseName);
 
     [RelayCommand(CanExecute = nameof(CanCreateCase))]
     private void CreateCase()
@@ -154,7 +180,7 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
         Status = "Case created.";
     }
 
-    private bool CanDeleteCase() => SelectedCase is not null;
+    private bool CanDeleteCase() => !IsDetecting && SelectedCase is not null;
 
     [RelayCommand(CanExecute = nameof(CanDeleteCase))]
     private void DeleteCase()
@@ -167,12 +193,15 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
             return;
         }
 
+        Input.ForgetDraft();
         Services.Vault!.Delete(SelectedCase!.File.Id);
         IsConfirmingDelete = false;
         ReloadCases();
         Status = "Case deleted.";
     }
 
-    [RelayCommand]
+    private bool CanLock() => !IsDetecting;
+
+    [RelayCommand(CanExecute = nameof(CanLock))]
     private void Lock() => _lock();
 }

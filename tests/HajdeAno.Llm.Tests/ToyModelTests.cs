@@ -47,6 +47,7 @@ public sealed class ToyModelTests : IAsyncLifetime
     {
         var raw = await _extractor!.ExtractRawAsync(
             "Anna Müller wohnt in Zürich.",
+            null,
             CancellationToken.None
         );
         Assert.StartsWith("[", raw.TrimStart(), StringComparison.Ordinal);

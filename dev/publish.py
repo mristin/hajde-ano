@@ -23,6 +23,10 @@ import tarfile
 import zipfile
 from typing import List
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from dotnet_env import dotnet_env
+
 APP_NAME = "Hajde Ano"
 EXE_NAME = "HajdeAno"
 BUNDLE_ID = "ch.ristin.hajde-ano"
@@ -57,7 +61,7 @@ def native_rid() -> str:
 def run(cmd: List[str], cwd: pathlib.Path) -> None:
     """Run the command and fail loudly."""
     print("Executing:", " ".join(cmd), flush=True)
-    subprocess.check_call(cmd, cwd=str(cwd))
+    subprocess.check_call(cmd, cwd=str(cwd), env=dotnet_env())
 
 
 def dotnet_publish(

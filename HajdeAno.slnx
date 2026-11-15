@@ -10,6 +10,7 @@
     <Project Path="src/HajdeAno.Llm/HajdeAno.Llm.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/HajdeAno.App.Tests/HajdeAno.App.Tests.csproj" />
     <Project Path="tests/HajdeAno.Core.Tests/HajdeAno.Core.Tests.csproj" />
     <Project Path="tests/HajdeAno.Llm.Tests/HajdeAno.Llm.Tests.csproj" />
   </Folder>

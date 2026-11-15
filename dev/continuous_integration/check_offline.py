@@ -59,13 +59,27 @@ def main() -> int:
                     rel = path.relative_to(repo_root)
                     problems.append(f"{rel}:{line_no}: {reason}: {line.strip()}")
 
+    # Avalonia's build telemetry must stay disabled for every build, even without the
+    # AVALONIA_TELEMETRY_OPTOUT environment variable.
+    targets = repo_root / "Directory.Build.targets"
+    if not targets.exists() or not re.search(
+        r'<Target\s+Name="AvaloniaStats"\s*/>', targets.read_text(encoding="utf-8")
+    ):
+        problems.append(
+            f"{targets.relative_to(repo_root)}: the empty AvaloniaStats target, which "
+            "disables Avalonia's build telemetry, is missing"
+        )
+
     if problems:
         print("Forbidden APIs found in the application source:", file=sys.stderr)
         for problem in problems:
             print(f"  {problem}", file=sys.stderr)
         return 1
 
-    print("No network, telemetry or logging APIs found in src/.")
+    print(
+        "No network, telemetry or logging APIs found in src/; "
+        "Avalonia build telemetry is disabled."
+    )
     return 0
 
 

@@ -130,7 +130,7 @@ public class AnonymizerTests
     {
         var extractor = FakeExtractor.Knowing(("Anna Müller", "PERSON"));
         var lying = new FakeExtractor(chunk =>
-            extractor.ExtractRawAsync(chunk, default).Result.TrimEnd(']')
+            extractor.ExtractRawAsync(chunk, null, default).Result.TrimEnd(']')
             + ", {\"text\": \"Hans Gerber\", \"type\": \"PERSON\"}]"
         );
         var result = await Analyze(
@@ -336,5 +336,58 @@ public class AnonymizerTests
     {
         var result = await Analyze("Siehe [PERSON_1] und CHF 100.", null);
         Assert.Equal("Siehe [PERSON_1] und [AMOUNT_1].", result.AnonymizedText);
+    }
+
+    [Fact]
+    public async Task Progress_is_monotonic_and_covers_both_passes()
+    {
+        var reports = new List<AnalysisProgress>();
+        var anonymizer = new Anonymizer(DesignExtractor, new AnonymizationOptions());
+        await anonymizer.AnalyzeAsync(
+            DesignExample,
+            new CaseDictionary(),
+            new SyncProgress<AnalysisProgress>(reports.Add),
+            CancellationToken.None
+        );
+
+        var fractions = reports.Select(r => r.Fraction!.Value).ToList();
+        for (var i = 1; i < fractions.Count; i++)
+        {
+            Assert.True(fractions[i] >= fractions[i - 1], $"{fractions[i - 1]} -> {fractions[i]}");
+        }
+
+        Assert.Equal(1.0, fractions[^1]);
+        Assert.Contains(reports, r =>
+            r.Message.StartsWith("Pass 1 of 2", StringComparison.Ordinal)
+        );
+        Assert.Contains(reports, r =>
+            r.Message.StartsWith("Pass 2 of 2", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Token_progress_is_described()
+    {
+        var reading = Anonymizer.DescribePass(
+            0,
+            1,
+            new ChunkProgress(0, 2, new InferenceProgress(900, 300, 0))
+        );
+        Assert.Equal(
+            "Detecting, part 1 of 2: reading the text: 300 of 900 tokens (33 %)…",
+            reading.Message
+        );
+        var writing = Anonymizer.DescribePass(
+            0,
+            1,
+            new ChunkProgress(0, 2, new InferenceProgress(900, 900, 120))
+        );
+        Assert.Contains(
+            "writing the answer (120 tokens)",
+            writing.Message,
+            StringComparison.Ordinal
+        );
+        Assert.True(writing.Fraction > reading.Fraction);
+        Assert.True(writing.Fraction < 0.5);
     }
 }

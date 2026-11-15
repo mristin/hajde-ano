@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Privacy: Avalonia.BuildServices (a transitive dependency of Avalonia) sends build
+    statistics to Avalonia's servers from the AvaloniaStats target, unless the environment
+    variable AVALONIA_TELEMETRY_OPTOUT is set. This file is imported after the NuGet
+    package targets, so the empty target below replaces it in every build (command line,
+    IDE, CI), even if the environment variable was forgotten. dev/build.py and the other
+    dev scripts set the variable as well.
+  -->
+  <Target Name="AvaloniaStats" />
+</Project>

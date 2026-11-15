@@ -1,5 +1,15 @@
 namespace HajdeAno.Core.Llm;
 
+/// <summary>
+/// Progress of a single model call: first the prompt is read (<see cref="PromptProcessed"/>
+/// grows to <see cref="PromptTokens"/>; a cached prefix counts as processed), then the
+/// answer is written token by token.
+/// </summary>
+public sealed record InferenceProgress(int PromptTokens, int PromptProcessed, int GeneratedTokens);
+
+/// <summary>Progress of a detection run over the chunks of a document.</summary>
+public sealed record ChunkProgress(int Chunk, int Chunks, InferenceProgress? Inference);
+
 /// <summary>Abstraction over the local LLM, so that the pipeline is testable without a model.</summary>
 public interface IEntityExtractor
 {
@@ -7,7 +17,17 @@ public interface IEntityExtractor
     int MaxChunkChars { get; }
 
     /// <summary>Return the raw model output for the given text.</summary>
-    Task<string> ExtractRawAsync(string text, CancellationToken cancellationToken);
+    Task<string> ExtractRawAsync(
+        string text,
+        IProgress<InferenceProgress>? progress,
+        CancellationToken cancellationToken
+    );
+}
+
+/// <summary>Reports progress synchronously on the calling thread (keeps reports in order).</summary>
+public sealed class SyncProgress<T>(Action<T> handler) : IProgress<T>
+{
+    public void Report(T value) => handler(value);
 }
 
 /// <summary>Statistics of an LLM detection run (no private content).</summary>
@@ -29,7 +49,7 @@ public sealed class LlmDetector(IEntityExtractor extractor)
     public async Task<(List<Detection> Detections, LlmRunStats Stats)> DetectAsync(
         string text,
         DetectionSource source,
-        IProgress<(int Done, int Total)>? progress,
+        IProgress<ChunkProgress>? progress,
         CancellationToken cancellationToken
     )
     {
@@ -44,9 +64,18 @@ public sealed class LlmDetector(IEntityExtractor extractor)
         var invalid = 0;
         for (var i = 0; i < chunks.Count; i++)
         {
-            progress?.Report((i, chunks.Count));
+            var chunk = i;
+            progress?.Report(new ChunkProgress(chunk, chunks.Count, null));
             var output = await extractor
-                .ExtractRawAsync(chunks[i].Text, cancellationToken)
+                .ExtractRawAsync(
+                    chunks[i].Text,
+                    progress is null
+                        ? null
+                        : new SyncProgress<InferenceProgress>(p =>
+                            progress.Report(new ChunkProgress(chunk, chunks.Count, p))
+                        ),
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
             var parsed = LlmResponseParser.Parse(output);
             if (!parsed.WasValidJson)
@@ -56,8 +85,6 @@ public sealed class LlmDetector(IEntityExtractor extractor)
 
             raw.AddRange(parsed.Entities);
         }
-
-        progress?.Report((chunks.Count, chunks.Count));
 
         var (detections, hallucinated) = Locate(text, raw, source);
         return (

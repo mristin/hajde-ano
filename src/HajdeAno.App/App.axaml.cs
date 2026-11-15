@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using HajdeAno.App.Services;
 using HajdeAno.App.ViewModels;
 using HajdeAno.App.Views;
@@ -21,9 +22,22 @@ public sealed class App : Application
         {
             var services = ServicesOverride ?? new AppServices(AppPaths.DataDirectory());
             var window = new MainWindow();
-            window.DataContext = new MainWindowViewModel(services, new UiServices(window));
+            var main = new MainWindowViewModel(services, new UiServices(window));
+            window.DataContext = main;
             desktop.MainWindow = window;
-            desktop.Exit += (_, _) => services.Dispose();
+
+            // An error in an event handler must neither crash the program nor print details;
+            // the user sees the kind of error only. Drafts are saved right away.
+            Dispatcher.UIThread.UnhandledException += (_, e) =>
+            {
+                e.Handled = true;
+                main.ReportInternalError(e.Exception.GetType().Name);
+            };
+            desktop.Exit += (_, _) =>
+            {
+                main.FlushDrafts();
+                services.Dispose();
+            };
         }
 
         base.OnFrameworkInitializationCompleted();

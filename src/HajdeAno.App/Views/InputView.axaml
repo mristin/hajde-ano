@@ -6,11 +6,50 @@
     x:DataType="vm:InputViewModel"
 >
     <DockPanel Margin="4,8">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-            <Button Content="Open TXT / Markdown…" Command="{Binding OpenFileCommand}" />
-            <Button Content="Clear" Command="{Binding ClearCommand}" />
+        <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="New" Command="{Binding NewCommand}" />
+                <Button Content="Open…" Command="{Binding OpenFileCommand}" />
+                <Button
+                    Content="Save as…"
+                    Command="{Binding SaveAsCommand}"
+                    ToolTip.Tip="Exports the original text unencrypted to a file outside the vault. The text of the case is always saved automatically, encrypted."
+                />
+                <TextBlock
+                    Text="{Binding DraftStatus}"
+                    VerticalAlignment="Center"
+                    Classes="hint"
+                    FontSize="12"
+                />
+            </StackPanel>
+            <Border
+                Classes="card"
+                IsVisible="{Binding IsConfirming}"
+                Background="#33F5A623"
+                BorderBrush="#F5A623"
+            >
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock
+                        Text="{Binding ConfirmQuestion}"
+                        VerticalAlignment="Center"
+                        FontWeight="SemiBold"
+                    />
+                    <Button
+                        Classes="accent"
+                        Content="Yes, continue"
+                        Command="{Binding ConfirmCommand}"
+                    />
+                    <Button Content="Cancel" Command="{Binding CancelConfirmCommand}" />
+                </StackPanel>
+            </Border>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
+            <TextBlock
+                Classes="hint"
+                FontSize="12"
+                Text="{Binding ModelInfo}"
+                TextWrapping="Wrap"
+            />
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button
                     Classes="accent"
@@ -22,14 +61,35 @@
                     Command="{Binding CancelCommand}"
                     IsVisible="{Binding IsBusy}"
                 />
-                <ProgressBar
-                    IsIndeterminate="True"
-                    Width="160"
-                    IsVisible="{Binding IsBusy}"
-                    VerticalAlignment="Center"
-                />
-                <TextBlock Text="{Binding Progress}" VerticalAlignment="Center" Classes="hint" />
             </StackPanel>
+            <Grid
+                ColumnDefinitions="*,Auto"
+                RowDefinitions="Auto,Auto"
+                IsVisible="{Binding IsBusy}"
+            >
+                <ProgressBar
+                    Grid.ColumnSpan="2"
+                    Height="10"
+                    Minimum="0"
+                    Maximum="100"
+                    Value="{Binding ProgressValue}"
+                    IsIndeterminate="{Binding IsProgressIndeterminate}"
+                />
+                <TextBlock
+                    Grid.Row="1"
+                    Text="{Binding Progress}"
+                    Margin="0,4,0,0"
+                    TextWrapping="Wrap"
+                />
+                <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Text="{Binding Elapsed}"
+                    Margin="12,4,0,0"
+                    Classes="hint"
+                />
+            </Grid>
+            <TextBlock Text="{Binding Progress}" Classes="hint" IsVisible="{Binding !IsBusy}" />
             <TextBlock
                 Classes="error"
                 Text="{Binding Error}"
@@ -38,7 +98,8 @@
             <TextBlock
                 Classes="hint"
                 FontSize="12"
-                Text="The text stays in memory on this computer. Detection runs on the local model; nothing is sent anywhere."
+                TextWrapping="Wrap"
+                Text="The text is saved automatically, encrypted, inside the case; it never leaves this computer unless you use Save as…. Detection runs on the local model; nothing is sent anywhere. On an older CPU, the 8B model can take several minutes per pass; Apple Silicon with Metal is much faster."
             />
         </StackPanel>
         <TextBox

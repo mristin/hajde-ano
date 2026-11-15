@@ -36,6 +36,25 @@ public sealed class UiServices(TopLevel topLevel) : IUiServices
         return files.Count == 0 ? null : files[0].TryGetLocalPath();
     }
 
+    public async Task<string?> PickSaveTextFileAsync(string suggestedName)
+    {
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(
+            new FilePickerSaveOptions
+            {
+                Title = "Save the case text",
+                SuggestedFileName = suggestedName,
+                DefaultExtension = "txt",
+                ShowOverwritePrompt = true,
+                FileTypeChoices =
+                [
+                    new FilePickerFileType("Text") { Patterns = ["*.txt"] },
+                    new FilePickerFileType("Markdown") { Patterns = ["*.md"] },
+                ],
+            }
+        );
+        return file?.TryGetLocalPath();
+    }
+
     public async Task<string?> PickModelFileAsync()
     {
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(

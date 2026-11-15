@@ -15,6 +15,10 @@ import tempfile
 
 from PIL import Image
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from dotnet_env import dotnet_env
+
 MAX_WIDTH = 1280
 COLORS = 128
 
@@ -60,6 +64,7 @@ def main() -> int:
                 str(repo_root / "tests" / "data" / "cases" / "06-musikschule.json"),
             ],
             cwd=str(repo_root),
+            env=dotnet_env(),
         )
         for png in sorted(raw.glob("*.png")):
             optimize(png, output / png.name)

@@ -12,6 +12,8 @@ permissions:
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
+  # Avalonia build telemetry (also disabled in Directory.Build.targets).
+  AVALONIA_TELEMETRY_OPTOUT: "1"
 
 jobs:
   precommit:

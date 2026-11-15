@@ -25,7 +25,11 @@ public sealed class ModelService : IDisposable
     /// Get the extractor for the current settings, loading (or reloading) the model if
     /// needed. Throws <see cref="FileNotFoundException"/> if no model is available locally.
     /// </summary>
-    public async Task<IEntityExtractor> GetAsync(AppSettings settings, CancellationToken ct)
+    public async Task<IEntityExtractor> GetAsync(
+        AppSettings settings,
+        IProgress<float>? loadProgress,
+        CancellationToken ct
+    )
     {
         var path = AppPaths.ResolveModel(settings.ModelPath)
             ?? throw new FileNotFoundException(
@@ -57,6 +61,7 @@ public sealed class ModelService : IDisposable
                         settings.Device == InferenceDevice.Gpu ? settings.GpuLayerCount : 0,
                     Threads = settings.Threads > 0 ? settings.Threads : null,
                 },
+                loadProgress,
                 ct
             );
             _loadedKey = key;
@@ -67,6 +72,32 @@ public sealed class ModelService : IDisposable
         {
             _lock.Release();
         }
+    }
+
+    /// <summary>True if the model for these settings is already in memory.</summary>
+    public bool IsLoadedFor(AppSettings settings)
+    {
+        var path = AppPaths.ResolveModel(settings.ModelPath);
+        return path is not null && _extractor is not null && _loadedKey == KeyOf(settings, path);
+    }
+
+    /// <summary>Human-readable description of the model the settings resolve to.</summary>
+    public static string Describe(AppSettings settings)
+    {
+        var path = AppPaths.ResolveModel(settings.ModelPath);
+        if (path is null)
+        {
+            return string.IsNullOrWhiteSpace(settings.ModelPath)
+                ? "No model found. Select a GGUF model in Settings (see README for downloads)."
+                : $"Model not found: {settings.ModelPath}";
+        }
+
+        var gb = new FileInfo(path).Length / 1e9;
+        var device =
+            settings.Device == InferenceDevice.Gpu
+                ? $"GPU ({settings.GpuLayerCount} layers)"
+                : "CPU";
+        return $"Model: {Path.GetFileName(path)} ({gb:F1} GB) · {device} · context {settings.ContextSize}\n{path}";
     }
 
     public void Unload()

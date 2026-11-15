@@ -20,7 +20,13 @@ public sealed class AppSettings
     /// <summary>Path to the GGUF model; if empty, the default locations are searched.</summary>
     public string ModelPath { get; set; } = "";
 
-    public InferenceDevice Device { get; set; } = InferenceDevice.Cpu;
+    /// <summary>Defaults to the GPU (Metal) on Apple Silicon and to the CPU elsewhere.</summary>
+    public InferenceDevice Device { get; set; } =
+        OperatingSystem.IsMacOS()
+        && System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
+            == System.Runtime.InteropServices.Architecture.Arm64
+            ? InferenceDevice.Gpu
+            : InferenceDevice.Cpu;
 
     /// <summary>Layers offloaded to the GPU when <see cref="Device"/> is GPU (Metal on Apple Silicon).</summary>
     public int GpuLayerCount { get; set; } = 99;

@@ -25,6 +25,8 @@ dev/
   continuous_integration/  precommit.py, check_offline.py, ruff.toml
   screenshots/             Headless renderer for the README screenshots
   assets/                  Icon generator
+  build.py                 Build, test and run with all telemetry turned off
+  dotnet_env.py            The telemetry opt-outs shared by all dev scripts
   download_models.py       Download GGUF models (verified by SHA-256)
   publish.py               Publish and package for Windows, macOS and Linux
   make_screenshots.py      Render and optimize the README screenshots
@@ -44,9 +46,30 @@ See [DESIGN.md](DESIGN.md) for the original requirements.
 ## Build and run
 
 ```sh
-dotnet build HajdeAno.slnx
+python3 dev/build.py build
 python3 dev/download_models.py            # Qwen3-8B, ~5 GB (or: qwen3-4b, qwen3-0.6b)
-dotnet run --project src/HajdeAno.App
+python3 dev/build.py run
+```
+
+### No telemetry, also not while building
+
+Avalonia pulls in `Avalonia.BuildServices`, which sends anonymous **build** statistics to
+Avalonia's servers unless `AVALONIA_TELEMETRY_OPTOUT=1` is set; the .NET SDK has its own
+telemetry (`DOTNET_CLI_TELEMETRY_OPTOUT=1`). Neither is part of the application, but we
+turn both off everywhere, so that it can never be forgotten:
+
+* `Directory.Build.targets` replaces Avalonia's `AvaloniaStats` target with an empty one,
+  so that **every** build (command line, IDE, CI) skips it, even without the environment
+  variable. `check-offline` fails if this override is removed.
+* `dev/build.py` (build, test, run, cli or any other `dotnet` command), `precommit.py`,
+  `publish.py` and `make_screenshots.py` set both opt-outs (`dev/dotnet_env.py`), and so
+  do the GitHub workflows.
+
+Prefer `python3 dev/build.py ...` over calling `dotnet` directly. If you do call `dotnet`
+yourself (or use an IDE), export the variables in your shell profile as well:
+
+```sh
+export DOTNET_CLI_TELEMETRY_OPTOUT=1 AVALONIA_TELEMETRY_OPTOUT=1
 ```
 
 For quick experiments `python3 dev/download_models.py qwen3-0.6b` fetches a 0.6 GB model.
@@ -95,22 +118,28 @@ There is no single standalone tool like ruff for C#. The fastest setup we found:
 ## Tests
 
 ```sh
-dotnet test HajdeAno.slnx
+python3 dev/build.py test
 ```
 
 * `HajdeAno.Core.Tests` cover regex detection, overlapping spans, placeholder
   consistency across documents, exact round-trip restoration, invalid and truncated LLM
   JSON, hallucinated entities, unknown and malformed placeholders, chunking of long
-  documents, encryption (wrong password, tampering, no plaintext on disk) and the
-  synthetic cases with an oracle detector.
+  documents, encryption (wrong password, tampering, no plaintext on disk, hashed file
+  names, rolled-back and deleted cases, damaged vault files, migration of old vaults) and
+  the synthetic cases with an oracle detector.
 * `HajdeAno.Llm.Tests` run the real llama.cpp inference path with a 1 MB toy model
   (nonsense output, but native loading, grammar-constrained sampling and validation are
   exercised on every OS in CI).
+* `HajdeAno.App.Tests` drive the real window and view models headlessly (Avalonia
+  Headless): the text survives closing and restarting the program, each case keeps its
+  own text, deleting a case deletes its text, New/Open ask before replacing text,
+  autosave only writes changed text, and a detection result can never end up in another
+  case.
 
 ### Evaluating detection quality
 
 ```sh
-dotnet run -c Release --project src/HajdeAno.Cli -- evaluate --model models/Qwen3-8B-Q4_K_M.gguf --report report.md
+python3 dev/build.py cli --configuration Release -- evaluate --model models/Qwen3-8B-Q4_K_M.gguf --report report.md
 ```
 
 This measures recall per category on `tests/data/cases/`, plus run time and peak memory.
@@ -157,7 +186,10 @@ the release. The model weights are never packaged.
 
 * No network, telemetry, logging, crash reporting or plaintext temporary files in `src/`
   (enforced by `check-offline`). Never put private text into exception messages or UI
-  error messages.
+  error messages. Unexpected errors show only their type; the crash handler in
+  `Program.cs` exits without printing details or writing a core dump.
+* Everything private is written only through `Vault` (encrypted, atomic). Never write
+  case data, mappings or drafts unencrypted, not even in the CLI.
 * Keep all text replacement deterministic and in C#. The model only *reports* spans.
 * Prefer recall over precision. Uncertain detections are flagged for review, not
   dropped.

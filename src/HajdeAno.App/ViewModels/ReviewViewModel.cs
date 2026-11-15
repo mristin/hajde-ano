@@ -140,6 +140,7 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
 
     public void Clear()
     {
+        _caseId = null;
         _working = null;
         _detections = [];
         Text = "";
@@ -150,13 +151,18 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
         Refresh();
     }
 
+    /// <summary>Case the reviewed detections belong to.</summary>
+    private string? _caseId;
+
     public void Load(
+        string caseId,
         AnalysisResult result,
         CaseDictionary working,
         HashSet<string> preexisting,
         AnonymizationOptions options
     )
     {
+        _caseId = caseId;
         _working = working;
         _preexisting = preexisting;
         _options = options;
@@ -341,6 +347,12 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
         var current = workspace.CurrentCase;
         if (_working is null || current is null)
         {
+            return;
+        }
+
+        if (current.Id != _caseId)
+        {
+            Message = "This review belongs to another case; please run the detection again.";
             return;
         }
 

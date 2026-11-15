@@ -10,6 +10,10 @@ import subprocess
 import sys
 from typing import Mapping, Optional, Sequence
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+
+from dotnet_env import dotnet_env
+
 
 class Step(enum.Enum):
     """Enumerate different pre-commit steps."""
@@ -102,9 +106,7 @@ def main() -> int:
 
     repo_root = pathlib.Path(os.path.realpath(__file__)).parent.parent.parent
 
-    env = os.environ.copy()
-    env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
-    env["DOTNET_NOLOGO"] = "1"
+    env = dotnet_env()
 
     def enabled(step: Step) -> bool:
         return step in selects and step not in skips

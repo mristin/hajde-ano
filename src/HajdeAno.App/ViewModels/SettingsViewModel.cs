@@ -120,6 +120,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
             .Select(t => t.Category)
             .ToList();
         _workspace.Services.SaveSettings();
+        _workspace.Input.RefreshModelInfo();
         RefreshModels();
         Message = "Settings saved. The model is (re)loaded on the next detection.";
     }
@@ -135,6 +136,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
             var sw = System.Diagnostics.Stopwatch.StartNew();
             await _workspace.Services.Models.GetAsync(
                 _workspace.Services.Settings,
+                null,
                 CancellationToken.None
             );
             Message = $"Model loaded in {sw.Elapsed.TotalSeconds:F1} s.";
