@@ -114,8 +114,9 @@ prefer Qwen3-4B there.
 ## Hardware
 
 The default model needs a computer with **16 GB RAM**. No GPU is required. The 8B model
-uses about 5 GB for the weights plus 1–2 GB for inference. Detection of a one-page
-document takes roughly half a minute to a few minutes on a laptop CPU (see
+uses about 5 GB for the weights plus 1–2 GB for inference. Detection runs on the
+CPU and takes from tens of seconds per page with a small model to several minutes with
+the 8B model on an older laptop (see
 [docs/benchmarks.md](docs/benchmarks.md)). Only one model is loaded at a time, and only
 one inference runs at a time.
 
