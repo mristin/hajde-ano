@@ -38,6 +38,7 @@ internal static class Program
           --ctx N          Context size in tokens (default 4096)
           --gpu-layers N   Layers to offload to the GPU (default 0, CPU only)
           --threads N      CPU threads (default: automatic)
+          --prompt-batch N Prompt tokens decoded per step (default 64, at most 512)
           --no-template    Do not wrap the prompt in the Qwen3 chat template (toy models)
         """;
 
@@ -166,6 +167,7 @@ internal static class Program
                 GpuLayerCount = o.GetInt("--gpu-layers", 0),
                 Threads = threads > 0 ? threads : null,
                 UseChatTemplate = !o.Flags.Contains("--no-template"),
+                PromptBatchSize = o.GetInt("--prompt-batch", 64),
             }
         );
         Console.Error.WriteLine($"Model loaded in {sw.Elapsed.TotalSeconds:F1} s");

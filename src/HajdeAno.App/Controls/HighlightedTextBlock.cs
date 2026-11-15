@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Input;
 using Avalonia.Media;
 
 namespace HajdeAno.App.Controls;
@@ -40,6 +41,19 @@ public sealed class HighlightedTextBlock : SelectableTextBlock
     private static readonly IBrush ProblemBrush = new SolidColorBrush(
         Color.FromArgb(0x77, 0xEF, 0x44, 0x44)
     );
+
+    /// <summary>
+    /// Keep the selection when the focus moves elsewhere. SelectableTextBlock clears it,
+    /// but the user selects text here and then clicks a button (or picks a category),
+    /// which takes the focus; the selection must survive until the command runs.
+    /// </summary>
+    protected override void OnLostFocus(FocusChangedEventArgs e)
+    {
+        var (start, end) = (SelectionStart, SelectionEnd);
+        base.OnLostFocus(e);
+        SelectionStart = start;
+        SelectionEnd = end;
+    }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {

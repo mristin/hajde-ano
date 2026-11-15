@@ -23,6 +23,12 @@ public sealed record LlamaOptions
     /// <summary>Upper bound on generated tokens per chunk.</summary>
     public int MaxOutputTokens { get; init; } = 1536;
 
+    /// <summary>
+    /// Prompt tokens decoded per step. Larger steps are more efficient; progress is
+    /// reported after each step.
+    /// </summary>
+    public int PromptBatchSize { get; init; } = 64;
+
     /// <summary>Wrap the prompt in the Qwen3 ChatML template (disable for toy test models).</summary>
     public bool UseChatTemplate { get; init; } = true;
 }
@@ -118,9 +124,6 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
             ? LlmPrompt.BuildChatMlPrompt(text)
             : LlmPrompt.SystemPrompt + "\n\nText:\n" + text + "\n\nJSON:\n";
 
-    /// <summary>Prompt tokens decoded per step; small enough to report progress often.</summary>
-    private const int PromptBatch = 64;
-
     /// <summary>
     /// Run the model on the text. The prompt is decoded in small batches (so that progress
     /// can be reported while the text is read), and the KV cache of the previous call is
@@ -163,11 +166,12 @@ public sealed class LlamaEntityExtractor : IEntityExtractor, IDisposable
             _cachedTokens.RemoveRange(keep, _cachedTokens.Count - keep);
 
             progress?.Report(new InferenceProgress(tokens.Length, keep, 0));
+            var promptBatch = Math.Clamp(_options.PromptBatchSize, 1, (int)_params.BatchSize);
             var batch = new LLamaBatch();
-            for (var start = keep; start < tokens.Length; start += PromptBatch)
+            for (var start = keep; start < tokens.Length; start += promptBatch)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var end = Math.Min(tokens.Length, start + PromptBatch);
+                var end = Math.Min(tokens.Length, start + promptBatch);
                 batch.Clear();
                 for (var i = start; i < end; i++)
                 {

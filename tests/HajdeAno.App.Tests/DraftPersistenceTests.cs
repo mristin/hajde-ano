@@ -6,13 +6,23 @@ using HajdeAno.App.ViewModels;
 using HajdeAno.App.Views;
 using HajdeAno.Core.Llm;
 
+// Avalonia's platform is global per process: run the headless sessions one at a time.
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace HajdeAno.App.Tests;
 
-/// <summary>Builds the real application on the headless platform.</summary>
+/// <summary>
+/// Builds the real application on the headless platform, with real text layout (Skia),
+/// which is needed to select text with the mouse. All tests use the same builder.
+/// </summary>
 public static class TestAppBuilder
 {
     public static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions());
+        AppBuilder
+            .Configure<App>()
+            .UseSkia()
+            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+            .WithInterFont();
 }
 
 /// <summary>File dialog that "opens" a fixed file; clipboard is ignored.</summary>
