@@ -165,10 +165,23 @@
                     IsChecked="{Binding Confirmed}"
                     Content="I have reviewed the anonymized text; it contains no private information."
                 />
-                <Button
-                    Classes="accent"
-                    Content="Copy anonymized text"
-                    Command="{Binding CopyCommand}"
+                <!-- A disabled button gets no clicks; the border behind it catches them. -->
+                <Border Background="Transparent" PointerPressed="OnCopyAreaPressed">
+                    <Button
+                        Classes="accent"
+                        Content="Copy anonymized text"
+                        Command="{Binding CopyCommand}"
+                        ToolTip.ShowOnDisabled="True"
+                        ToolTip.Tip="{Binding CopyBlockedReason}"
+                    />
+                </Border>
+                <TextBlock
+                    Text="{Binding CopyHint}"
+                    VerticalAlignment="Center"
+                    TextWrapping="Wrap"
+                    Foreground="#B76E00"
+                    FontWeight="SemiBold"
+                    IsVisible="{Binding CopyHint, Converter={x:Static ObjectConverters.IsNotNull}}"
                 />
             </StackPanel>
         </StackPanel>

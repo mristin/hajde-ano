@@ -141,7 +141,9 @@ executable on Windows and macOS. All features keep working.
   devices. Only approved anonymized text and restored text are copied, at the user's
   explicit request. Restored text contains the original names.
 * **Save as.** *Save as…* on the input screen exports the original text unencrypted to a
-  file you choose, outside the vault. Everything else is saved encrypted.
+  file you choose, outside the vault. Likewise, *Save restored Word document…* writes
+  the restored answer, with the original names, unencrypted. Everything else is saved
+  encrypted.
 * **Swap and memory dumps.** Text in memory can be paged out by the operating system.
   Use full-disk encryption.
 * **Indirect identifiers.** Even without names, a combination of details (rare

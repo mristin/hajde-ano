@@ -40,6 +40,16 @@ internal sealed class NoUi : IUiServices
 
     public Task<string?> PickSaveTextFileAsync(string suggestedName) =>
         Task.FromResult<string?>(null);
+
+    public Task<string?> PickAnswerFileAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<string?> PickSaveWordFileAsync(string suggestedName)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 internal static class Program

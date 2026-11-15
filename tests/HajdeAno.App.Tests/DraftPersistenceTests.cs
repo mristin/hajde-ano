@@ -43,6 +43,17 @@ internal sealed class FakeUi(string fileToOpen) : IUiServices
         return Task.FromResult(SaveAsPath);
     }
 
+    /// <summary>What the next "open answer" dialog returns.</summary>
+    public string? AnswerPath { get; set; }
+
+    /// <summary>What the next "save Word document" dialog returns.</summary>
+    public string? SaveWordPath { get; set; }
+
+    public Task<string?> PickAnswerFileAsync() => Task.FromResult(AnswerPath);
+
+    public Task<string?> PickSaveWordFileAsync(string suggestedName) =>
+        Task.FromResult(SaveWordPath);
+
     public Task<string?> PickModelFileAsync() => Task.FromResult<string?>(null);
 }
 

@@ -153,4 +153,68 @@ public sealed class ReviewSelectionTests : IDisposable
             CancellationToken.None
         );
     }
+
+    [Fact]
+    public async Task Clicking_the_disabled_copy_button_explains_why()
+    {
+        using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        await session.Dispatch(
+            async () =>
+            {
+                var services = new AppServices(Path.Combine(_root, "data"))
+                {
+                    ExtractorOverride = new NothingFound(),
+                };
+                var window = new MainWindow { Width = 1400, Height = 900 };
+                var main = new MainWindowViewModel(services, new FakeUi(""));
+                window.DataContext = main;
+                window.Show();
+
+                var unlock = Assert.IsType<UnlockViewModel>(main.Current);
+                unlock.Password = Password;
+                unlock.ConfirmPassword = Password;
+                await unlock.UnlockCommand.ExecuteAsync(null);
+                var workspace = Assert.IsType<WorkspaceViewModel>(main.Current);
+                workspace.NewCaseName = "Kopieren";
+                workspace.CreateCaseCommand.Execute(null);
+                var review = workspace.Review;
+                Button CopyButton() =>
+                    window
+                        .GetVisualDescendants()
+                        .OfType<Button>()
+                        .Single(b =>
+                            b.IsEffectivelyVisible && b.Content as string == "Copy anonymized text"
+                        );
+
+                // Nothing detected yet.
+                workspace.SelectedTab = WorkspaceViewModel.ReviewTab;
+                Settle(window);
+                Assert.False(CopyButton().IsEffectivelyEnabled);
+                Click(window, CopyButton());
+                Assert.Contains("Detect", review.CopyHint, StringComparison.Ordinal);
+
+                // Detected, but the review is not confirmed yet.
+                workspace.Input.Text = SyntheticText;
+                await workspace.Input.DetectCommand.ExecuteAsync(null);
+                Settle(window);
+                Assert.Null(review.CopyHint);
+                Assert.False(CopyButton().IsEffectivelyEnabled);
+                Click(window, CopyButton());
+                Assert.Contains("tick", review.CopyHint, StringComparison.OrdinalIgnoreCase);
+
+                // Once confirmed, the button works and the hint disappears.
+                review.Confirmed = true;
+                Settle(window);
+                Assert.Null(review.CopyHint);
+                Assert.True(CopyButton().IsEffectivelyEnabled);
+                Click(window, CopyButton());
+                Assert.Contains("copied", review.Message, StringComparison.Ordinal);
+
+                window.Close();
+                services.Dispose();
+                return true;
+            },
+            CancellationToken.None
+        );
+    }
 }

@@ -55,6 +55,44 @@ public sealed class UiServices(TopLevel topLevel) : IUiServices
         return file?.TryGetLocalPath();
     }
 
+    public async Task<string?> PickAnswerFileAsync()
+    {
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = "Open the answer with placeholders",
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    new FilePickerFileType("Word, text and Markdown")
+                    {
+                        Patterns = ["*.docx", "*.txt", "*.md", "*.markdown"],
+                    },
+                    FilePickerFileTypes.All,
+                ],
+            }
+        );
+        return files.Count == 0 ? null : files[0].TryGetLocalPath();
+    }
+
+    public async Task<string?> PickSaveWordFileAsync(string suggestedName)
+    {
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(
+            new FilePickerSaveOptions
+            {
+                Title = "Save the restored Word document",
+                SuggestedFileName = suggestedName,
+                DefaultExtension = "docx",
+                ShowOverwritePrompt = true,
+                FileTypeChoices =
+                [
+                    new FilePickerFileType("Word document") { Patterns = ["*.docx"] },
+                ],
+            }
+        );
+        return file?.TryGetLocalPath();
+    }
+
     public async Task<string?> PickModelFileAsync()
     {
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(

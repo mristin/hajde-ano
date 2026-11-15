@@ -123,6 +123,56 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
     [NotifyCanExecuteChangedFor(nameof(CopyCommand))]
     private bool _confirmed;
 
+    /// <summary>Why "Copy anonymized text" is disabled; shown when the user clicks it anyway.</summary>
+    [ObservableProperty]
+    private string? _copyHint;
+
+    partial void OnConfirmedChanged(bool value) => UpdateCopyHint();
+
+    partial void OnPendingCountChanged(int value) => UpdateCopyHint();
+
+    /// <summary>The reasons why the text cannot be copied yet (null if it can).</summary>
+    public string? CopyBlockedReason
+    {
+        get
+        {
+            if (!HasDocument)
+            {
+                return "There is nothing to copy yet: paste or open the text on the Input tab and click \"Detect private information\".";
+            }
+
+            var reasons = new List<string>();
+            if (PendingCount > 0)
+            {
+                reasons.Add(
+                    $"decide on the {PendingCount} item(s) marked \"needs review\" (approve them or keep them in clear)"
+                );
+            }
+
+            if (!Confirmed)
+            {
+                reasons.Add("tick the box confirming that you have reviewed the anonymized text");
+            }
+
+            return reasons.Count == 0
+                ? null
+                : "To copy the anonymized text, first " + string.Join(", and ", reasons) + ".";
+        }
+    }
+
+    /// <summary>Called when the user clicks the disabled copy button.</summary>
+    public void ExplainWhyCopyIsDisabled() => CopyHint = CopyBlockedReason;
+
+    /// <summary>Keep a shown hint up to date, and hide it once copying is possible.</summary>
+    private void UpdateCopyHint()
+    {
+        OnPropertyChanged(nameof(CopyBlockedReason));
+        if (CopyHint is not null)
+        {
+            CopyHint = CopyBlockedReason;
+        }
+    }
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CopyCommand))]
     [NotifyPropertyChangedFor(nameof(ReviewSummary))]
@@ -148,6 +198,7 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
         Warnings.Clear();
         Confirmed = false;
         Message = null;
+        CopyHint = null;
         Refresh();
     }
 
@@ -176,6 +227,7 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
 
         Confirmed = false;
         Message = null;
+        CopyHint = null;
         Rebuild();
     }
 
@@ -198,6 +250,7 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
     {
         PendingCount = Groups.Count(g => g.IsPendingReview);
         OnPropertyChanged(nameof(ReviewSummary));
+        UpdateCopyHint();
         AnonymizedText = Anonymizer.Apply(Text, _detections);
         OriginalSegments = BuildOriginalSegments();
         AnonymizedSegments = BuildAnonymizedSegments();

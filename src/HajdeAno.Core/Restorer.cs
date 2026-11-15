@@ -17,7 +17,18 @@ public enum RestoreIssueKind
 public sealed record RestoreIssue(RestoreIssueKind Kind, int Start, int Length, string Text);
 
 /// <summary>A placeholder that was restored.</summary>
-public sealed record RestoredSpan(int Start, int Length, string Placeholder, string Value);
+/// <param name="Start">Start of the value in the restored text.</param>
+/// <param name="Length">Length of the value in the restored text.</param>
+/// <param name="Placeholder">The placeholder as it appeared in the input.</param>
+/// <param name="Value">The original value.</param>
+/// <param name="SourceStart">Start of the placeholder in the input text.</param>
+public sealed record RestoredSpan(
+    int Start,
+    int Length,
+    string Placeholder,
+    string Value,
+    int SourceStart
+);
 
 /// <summary>Result of a restoration.</summary>
 public sealed record RestoreResult(
@@ -76,7 +87,7 @@ public static partial class Restorer
             }
             else
             {
-                restored.Add(new RestoredSpan(sb.Length, value.Length, m.Value, value));
+                restored.Add(new RestoredSpan(sb.Length, value.Length, m.Value, value, m.Index));
                 sb.Append(value);
             }
 

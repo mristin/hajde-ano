@@ -7,12 +7,31 @@
     x:DataType="vm:RestoreViewModel"
 >
     <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,*,Auto" Margin="4,8">
-        <TextBlock
-            Grid.Column="0"
-            Classes="h2"
-            Text="Response from the online service"
-            Margin="0,0,0,4"
-        />
+        <!-- A grid, so that a long file name is shortened instead of running into the
+             label of the restored text. -->
+        <Grid Grid.Column="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
+            <TextBlock
+                Classes="h2"
+                Text="Response from the online service"
+                VerticalAlignment="Center"
+            />
+            <Button
+                Grid.Column="1"
+                Margin="8,0"
+                Content="Open answer…"
+                Command="{Binding OpenAnswerCommand}"
+                ToolTip.Tip="Open a Word document (.docx), text or Markdown file with placeholders"
+            />
+            <TextBlock
+                Grid.Column="2"
+                Text="{Binding WordFileName, StringFormat='Word document: {0}'}"
+                ToolTip.Tip="{Binding WordFileName}"
+                IsVisible="{Binding IsWord}"
+                VerticalAlignment="Center"
+                FontWeight="SemiBold"
+                TextTrimming="CharacterEllipsis"
+            />
+        </Grid>
         <TextBlock
             Grid.Column="2"
             Classes="h2"
@@ -55,6 +74,13 @@
                     Classes="accent"
                     Content="Copy restored text"
                     Command="{Binding CopyCommand}"
+                />
+                <Button
+                    Classes="accent"
+                    Content="Save restored Word document…"
+                    Command="{Binding SaveWordCommand}"
+                    IsVisible="{Binding IsWord}"
+                    ToolTip.Tip="Writes a copy of the Word document with the original names (unencrypted), keeping its formatting"
                 />
                 <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Message}" VerticalAlignment="Center" Classes="hint" />

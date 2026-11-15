@@ -37,10 +37,13 @@ No private text, name or mapping ever leaves your computer.
 4. **Review.** Original and anonymized text appear side by side. Uncertain detections
    are highlighted in orange and must be decided: anonymize, keep, or change the
    category. You can select any text to anonymize it manually. Copying is only possible
-   after you confirm the review.
-5. **Restore.** Paste the AI's answer. Known placeholders are replaced by the original
-   values. Unknown or modified placeholders (e.g. `[PERSON 1]`) are reported, never
-   guessed.
+   after you confirm the review. If you click the copy button too early, it tells you
+   what is still missing.
+5. **Restore.** Paste the AI's answer, or open it as a text, Markdown or Word file
+   (`.docx`). Known placeholders are replaced by the original values. Unknown or
+   modified placeholders (e.g. `[PERSON 1]`) are reported, never guessed. A Word
+   document is restored into a copy that keeps its formatting, including headers,
+   footers and footnotes.
 
 Placeholders are stable and human-readable:
 
@@ -134,7 +137,8 @@ one inference runs at a time.
   of a case file is detected.
 * No logging of texts, names or mappings, and no plaintext temporary files.
 * Only the text you approved on the *Review* screen is ever exported (clipboard). The
-  restored answer contains the original names; it is copied only when you ask for it.
+  restored answer contains the original names; it is copied or saved (restored Word
+  document, unencrypted) only when you ask for it.
 
 See [docs/privacy-architecture.md](docs/privacy-architecture.md) for details.
 

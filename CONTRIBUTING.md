@@ -124,7 +124,8 @@ python3 dev/build.py test
 * `HajdeAno.Core.Tests` cover regex detection, overlapping spans, placeholder
   consistency across documents, exact round-trip restoration, invalid and truncated LLM
   JSON, hallucinated entities, unknown and malformed placeholders, chunking of long
-  documents, encryption (wrong password, tampering, no plaintext on disk, hashed file
+  documents, restoring Word documents (placeholders split over formatting runs,
+  headers, footers, notes, title), encryption (wrong password, tampering, no plaintext on disk, hashed file
   names, rolled-back and deleted cases, damaged vault files, migration of old vaults) and
   the synthetic cases with an oracle detector.
 * `HajdeAno.Llm.Tests` run the real llama.cpp inference path with a 1 MB toy model
@@ -133,8 +134,10 @@ python3 dev/build.py test
 * `HajdeAno.App.Tests` drive the real window and view models headlessly (Avalonia
   Headless): the text survives closing and restarting the program, each case keeps its
   own text, deleting a case deletes its text, New/Open ask before replacing text,
-  autosave only writes changed text, and a detection result can never end up in another
-  case.
+  autosave only writes changed text, a detection result can never end up in another
+  case, selecting text with the mouse and clicking "Anonymize selection" works,
+  clicking the disabled copy button explains why, and answers are restored from Word
+  and text files.
 
 ### Evaluating detection quality
 

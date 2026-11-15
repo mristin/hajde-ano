@@ -36,5 +36,11 @@ public interface IUiServices
     /// <summary>Ask where to save a text file; returns null if cancelled.</summary>
     Task<string?> PickSaveTextFileAsync(string suggestedName);
 
+    /// <summary>Ask for an answer to restore (Word, text or Markdown).</summary>
+    Task<string?> PickAnswerFileAsync();
+
+    /// <summary>Ask where to save a restored Word document; returns null if cancelled.</summary>
+    Task<string?> PickSaveWordFileAsync(string suggestedName);
+
     Task<string?> PickModelFileAsync();
 }
