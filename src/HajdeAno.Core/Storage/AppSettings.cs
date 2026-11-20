@@ -10,9 +10,7 @@ public enum InferenceDevice
     Gpu,
 }
 
-/// <summary>
-/// Application settings. Contains no sensitive data and is therefore stored in plain JSON.
-/// </summary>
+/// <summary>Application settings, stored as JSON in the data directory.</summary>
 public sealed class AppSettings
 {
     public const string FileName = "settings.json";
@@ -42,6 +40,29 @@ public sealed class AppSettings
 
     /// <summary>Disabled categories (all others are enabled).</summary>
     public List<Category> DisabledCategories { get; set; } = [];
+
+    /// <summary>Most recently opened session folders, most recent first.</summary>
+    public List<string> RecentSessions { get; set; } = [];
+
+    public const int MaxRecentSessions = 15;
+
+    /// <summary>Put <paramref name="directory"/> at the top of the recent sessions.</summary>
+    public void AddRecentSession(string directory)
+    {
+        var full = Path.GetFullPath(directory);
+        RemoveRecentSession(full);
+        RecentSessions.Insert(0, full);
+        if (RecentSessions.Count > MaxRecentSessions)
+        {
+            RecentSessions.RemoveRange(MaxRecentSessions, RecentSessions.Count - MaxRecentSessions);
+        }
+    }
+
+    public void RemoveRecentSession(string directory)
+    {
+        var full = Path.GetFullPath(directory);
+        RecentSessions.RemoveAll(d => string.Equals(d, full, StringComparison.Ordinal));
+    }
 
     public AnonymizationOptions ToOptions() =>
         new()
@@ -94,7 +115,7 @@ public static class AppPaths
 {
     public const string DataDirEnvVar = "HAJDE_ANO_DATA_DIR";
 
-    /// <summary>Directory for the vault and settings (overridable for tests).</summary>
+    /// <summary>Directory for the settings and the list of recent sessions (overridable for tests).</summary>
     public static string DataDirectory()
     {
         var overridden = Environment.GetEnvironmentVariable(DataDirEnvVar);

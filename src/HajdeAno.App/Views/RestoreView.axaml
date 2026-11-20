@@ -80,7 +80,7 @@
                     Content="Save restored Word document…"
                     Command="{Binding SaveWordCommand}"
                     IsVisible="{Binding IsWord}"
-                    ToolTip.Tip="Writes a copy of the Word document with the original names (unencrypted), keeping its formatting"
+                    ToolTip.Tip="Writes a copy of the Word document with the original names, keeping its formatting"
                 />
                 <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Message}" VerticalAlignment="Center" Classes="hint" />

@@ -1,0 +1,120 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:HajdeAno.App.ViewModels"
+    x:Class="HajdeAno.App.Views.SessionPickerView"
+    x:DataType="vm:SessionPickerViewModel"
+>
+    <Grid>
+        <Border
+            Classes="card"
+            Width="760"
+            Height="460"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="0"
+        >
+            <Grid ColumnDefinitions="260,*">
+                <!-- Actions -->
+                <Border
+                    Grid.Column="0"
+                    Padding="24"
+                    CornerRadius="6,0,0,6"
+                    Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                >
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Spacing="12">
+                            <TextBlock Classes="h1" Text="Hajde Ano" />
+                            <TextBlock
+                                Classes="hint"
+                                Text="A session is a folder in which your cases are stored."
+                            />
+                            <Button
+                                Classes="accent"
+                                Content="New session…"
+                                Command="{Binding NewSessionCommand}"
+                                HorizontalAlignment="Stretch"
+                                x:Name="NewSessionButton"
+                            />
+                            <Button
+                                Content="Open session…"
+                                Command="{Binding OpenExistingSessionCommand}"
+                                HorizontalAlignment="Stretch"
+                            />
+                            <TextBlock
+                                Classes="error"
+                                Text="{Binding Error}"
+                                IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            />
+                        </StackPanel>
+                        <TextBlock
+                            DockPanel.Dock="Bottom"
+                            Classes="hint"
+                            FontSize="12"
+                            VerticalAlignment="Bottom"
+                            Text="The cases, including the names and their placeholders, are stored unencrypted. Choose a folder only you can access, ideally on an encrypted disk. Works fully offline."
+                        />
+                    </DockPanel>
+                </Border>
+
+                <!-- Recent sessions -->
+                <DockPanel Grid.Column="1" Margin="16,24,16,16">
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Classes="h2"
+                        Text="Recent sessions"
+                        Margin="8,0,0,8"
+                    />
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Classes="hint"
+                        Margin="8,0"
+                        IsVisible="{Binding !HasRecent}"
+                        Text="No sessions yet. Create a new session or open an existing session folder."
+                    />
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Recent}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RecentSessionViewModel">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
+                                        <Button
+                                            Grid.Column="0"
+                                            Command="{Binding OpenCommand}"
+                                            IsEnabled="{Binding IsAvailable}"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left"
+                                            Background="Transparent"
+                                            ToolTip.Tip="{Binding Directory}"
+                                        >
+                                            <StackPanel>
+                                                <TextBlock
+                                                    Text="{Binding Name}"
+                                                    FontWeight="SemiBold"
+                                                    TextTrimming="CharacterEllipsis"
+                                                />
+                                                <TextBlock
+                                                    Text="{Binding Details}"
+                                                    FontSize="11"
+                                                    Opacity="0.7"
+                                                    TextTrimming="CharacterEllipsis"
+                                                />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button
+                                            Grid.Column="1"
+                                            Content="✕"
+                                            Command="{Binding RemoveCommand}"
+                                            Background="Transparent"
+                                            VerticalAlignment="Center"
+                                            ToolTip.Tip="Remove from the list (the folder is kept)"
+                                        />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

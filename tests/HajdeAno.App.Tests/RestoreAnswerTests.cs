@@ -18,7 +18,6 @@ namespace HajdeAno.App.Tests;
 /// </summary>
 public sealed class RestoreAnswerTests : IDisposable
 {
-    private const string Password = "synthetic password 123";
     private const string Ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
     private readonly string _root = Path.Combine(
@@ -91,11 +90,7 @@ public sealed class RestoreAnswerTests : IDisposable
                 var main = new MainWindowViewModel(services, ui);
                 window.DataContext = main;
                 window.Show();
-                var unlock = Assert.IsType<UnlockViewModel>(main.Current);
-                unlock.Password = Password;
-                unlock.ConfirmPassword = Password;
-                await unlock.UnlockCommand.ExecuteAsync(null);
-                var workspace = Assert.IsType<WorkspaceViewModel>(main.Current);
+                var workspace = TestSession.Open(main, Path.Combine(_root, "session"));
                 workspace.NewCaseName = "Antwort";
                 workspace.CreateCaseCommand.Execute(null);
                 workspace.CurrentCase!.Dictionary.Assign("Zora Blumenthal", Category.Person);

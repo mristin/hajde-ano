@@ -392,7 +392,7 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
 
     /// <summary>
     /// Export: only the reviewed anonymized text leaves the application. The mappings are
-    /// committed to the encrypted case dictionary.
+    /// committed to the case dictionary.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanCopy))]
     private async Task CopyAsync()
@@ -431,6 +431,6 @@ public sealed partial class ReviewViewModel(WorkspaceViewModel workspace) : View
         _preexisting = _working.Entities.Select(e => e.Id).ToHashSet();
 
         await workspace.Ui.SetClipboardTextAsync(AnonymizedText);
-        Message = "Anonymized text copied. The mappings were saved to the encrypted case.";
+        Message = "Anonymized text copied. The mappings were saved to the case.";
     }
 }

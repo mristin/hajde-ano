@@ -12,7 +12,7 @@ Thank you for helping to improve Hajde Ano!
 ```
 src/
   HajdeAno.Core/     Detection (regex, LLM orchestration, merging), placeholders,
-                     case dictionary, restoration, encryption, evaluation
+                     case dictionary, restoration, session storage, evaluation
   HajdeAno.Llm/      In-process inference through LLamaSharp (llama.cpp)
   HajdeAno.App/      Avalonia desktop application (MVVM)
   HajdeAno.Cli/      Developer CLI: extract, anonymize, restore, evaluate
@@ -75,7 +75,8 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1 AVALONIA_TELEMETRY_OPTOUT=1
 For quick experiments `python3 dev/download_models.py qwen3-0.6b` fetches a 0.6 GB model.
 It is fast but misses far more entities. Don't draw quality conclusions from it.
 
-Set `HAJDE_ANO_DATA_DIR` to use a separate vault and settings folder during development.
+Set `HAJDE_ANO_DATA_DIR` to use a separate settings folder (and list of recent sessions)
+during development. Sessions themselves live in whatever folder you pick in the app.
 
 ## Pre-commit checks
 
@@ -125,14 +126,16 @@ python3 dev/build.py test
   consistency across documents, exact round-trip restoration, invalid and truncated LLM
   JSON, hallucinated entities, unknown and malformed placeholders, chunking of long
   documents, restoring Word documents (placeholders split over formatting runs,
-  headers, footers, notes, title), encryption (wrong password, tampering, no plaintext on disk, hashed file
-  names, rolled-back and deleted cases, damaged vault files, migration of old vaults) and
+  headers, footers, notes, title), session storage (layout, empty-folder check, damaged
+  session and case files, deletion, leftover temporary files) and
   the synthetic cases with an oracle detector.
 * `HajdeAno.Llm.Tests` run the real llama.cpp inference path with a 1 MB toy model
   (nonsense output, but native loading, grammar-constrained sampling and validation are
   exercised on every OS in CI).
 * `HajdeAno.App.Tests` drive the real window and view models headlessly (Avalonia
-  Headless): the text survives closing and restarting the program, each case keeps its
+  Headless): the session picker creates, opens and lists sessions (refusing non-empty
+  and non-session folders, marking moved ones), the text survives closing and
+  restarting the program, each case keeps its
   own text, deleting a case deletes its text, New/Open ask before replacing text,
   autosave only writes changed text, a detection result can never end up in another
   case, selecting text with the mouse and clicking "Anonymize selection" works,
@@ -191,8 +194,8 @@ the release. The model weights are never packaged.
   (enforced by `check-offline`). Never put private text into exception messages or UI
   error messages. Unexpected errors show only their type; the crash handler in
   `Program.cs` exits without printing details or writing a core dump.
-* Everything private is written only through `Vault` (encrypted, atomic). Never write
-  case data, mappings or drafts unencrypted, not even in the CLI.
+* Case data, mappings and drafts are written only through `Session` (atomic, into the
+  session folder the user chose). Never write them anywhere else.
 * Keep all text replacement deterministic and in C#. The model only *reports* spans.
 * Prefer recall over precision. Uncertain detections are flagged for review, not
   dropped.

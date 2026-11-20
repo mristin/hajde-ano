@@ -17,7 +17,7 @@ public sealed class CaseItemViewModel(CaseFile file)
         $"{File.Dictionary.Entities.Count} entities · {File.DocumentCount} documents · {File.Modified.LocalDateTime:g}";
 }
 
-/// <summary>The main workspace after unlocking: cases on the left, screens as tabs.</summary>
+/// <summary>The main workspace of an open session: cases on the left, screens as tabs.</summary>
 public sealed partial class WorkspaceViewModel : ViewModelBase
 {
     public const int InputTab = 0;
@@ -26,13 +26,13 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
     public const int EntitiesTab = 3;
     public const int SettingsTab = 4;
 
-    private readonly Action _lock;
+    private readonly Action _closeSession;
 
-    public WorkspaceViewModel(AppServices services, IUiServices ui, Action lockVault)
+    public WorkspaceViewModel(AppServices services, IUiServices ui, Action closeSession)
     {
         Services = services;
         Ui = ui;
-        _lock = lockVault;
+        _closeSession = closeSession;
         Input = new InputViewModel(this);
         Review = new ReviewViewModel(this);
         Restore = new RestoreViewModel(this);
@@ -44,6 +44,10 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
     public AppServices Services { get; }
 
     public IUiServices Ui { get; }
+
+    public string SessionName => Services.Session?.Name ?? "";
+
+    public string SessionDirectory => Services.Session?.Directory ?? "";
 
     public InputViewModel Input { get; }
 
@@ -76,7 +80,8 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
     private bool _isConfirmingDelete;
 
     /// <summary>
-    /// While the detection runs, the case cannot be switched, created, deleted or locked,
+    /// While the detection runs, the case cannot be switched, created or deleted, and the
+    /// session cannot be closed,
     /// so that its result can only ever be saved into the case it was computed for.
     /// </summary>
     [ObservableProperty]
@@ -84,7 +89,7 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(
         nameof(DeleteCaseCommand),
         nameof(CreateCaseCommand),
-        nameof(LockCommand)
+        nameof(CloseSessionCommand)
     )]
     private bool _isDetecting;
 
@@ -114,8 +119,8 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
 
     public void ReloadCases(string? selectId = null)
     {
-        var vault = Services.Vault;
-        if (vault is null)
+        var session = Services.Session;
+        if (session is null)
         {
             return;
         }
@@ -123,7 +128,7 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
         // The case objects are re-read from disk below; persist the draft first.
         Input.FlushDraft();
 
-        var loaded = vault.LoadAll();
+        var loaded = session.LoadAll();
         var cases = loaded.Cases;
         Cases.Clear();
         foreach (var c in cases)
@@ -134,25 +139,19 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
         SelectedCase = Cases.FirstOrDefault(c => c.File.Id == selectId) ?? Cases.FirstOrDefault();
         if (loaded.Unreadable > 0)
         {
-            Status = $"{loaded.Unreadable} case file(s) could not be decrypted and were skipped.";
-        }
-
-        if (loaded.Outdated > 0)
-        {
-            Status =
-                $"{loaded.Outdated} case file(s) are older than their last saved version (restored from a backup or tampered with?) and were skipped.";
+            Status = $"{loaded.Unreadable} case file(s) could not be read and were skipped.";
         }
     }
 
     /// <summary>Persist the current case and refresh the list entry.</summary>
     public void SaveCurrentCase()
     {
-        if (CurrentCase is null || Services.Vault is null)
+        if (CurrentCase is null || Services.Session is null)
         {
             return;
         }
 
-        Services.Vault.Save(CurrentCase);
+        Services.Session.Save(CurrentCase);
         var index = Cases.IndexOf(SelectedCase!);
         var item = new CaseItemViewModel(CurrentCase);
         _keepWork = true;
@@ -173,7 +172,7 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
     private void CreateCase()
     {
         var file = new CaseFile { Name = NewCaseName.Trim() };
-        Services.Vault!.Save(file);
+        Services.Session!.Save(file);
         NewCaseName = "";
         ReloadCases(file.Id);
         SelectedTab = InputTab;
@@ -194,14 +193,14 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
         }
 
         Input.ForgetDraft();
-        Services.Vault!.Delete(SelectedCase!.File.Id);
+        Services.Session!.Delete(SelectedCase!.File.Id);
         IsConfirmingDelete = false;
         ReloadCases();
         Status = "Case deleted.";
     }
 
-    private bool CanLock() => !IsDetecting;
+    private bool CanCloseSession() => !IsDetecting;
 
-    [RelayCommand(CanExecute = nameof(CanLock))]
-    private void Lock() => _lock();
+    [RelayCommand(CanExecute = nameof(CanCloseSession))]
+    private void CloseSession() => _closeSession();
 }

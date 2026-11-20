@@ -50,6 +50,8 @@ internal sealed class NoUi : IUiServices
     {
         throw new NotImplementedException();
     }
+
+    public Task<string?> PickFolderAsync(string title) => Task.FromResult<string?>(null);
 }
 
 internal static class Program
@@ -148,11 +150,23 @@ internal static class Program
         window.DataContext = main;
         window.Show();
 
-        // 1. Unlock screen (new vault).
-        Capture(window, Path.Combine(outDir, "unlock.png"));
+        // 1. Session picker with a few (synthetic) recent sessions.
+        var sessionsRoot = Path.Combine(dataDir, "sessions");
+        foreach (var name in new[] { "Mietrecht 2026", "Versicherungen", "Familie" })
+        {
+            Session.Create(Path.Combine(sessionsRoot, name));
+        }
 
-        services.Vault = Vault.Create(dataDir, "synthetic-password", iterations: 1000);
-        var workspace = new WorkspaceViewModel(services, new NoUi(), main.Lock);
+        foreach (var name in new[] { "Familie", "Versicherungen", "Mietrecht 2026" })
+        {
+            services.Settings.AddRecentSession(Path.Combine(sessionsRoot, name));
+        }
+
+        main.Current = new SessionPickerViewModel(services, new NoUi(), () => { });
+        Capture(window, Path.Combine(outDir, "sessions.png"));
+
+        services.Session = Session.Open(Path.Combine(sessionsRoot, "Mietrecht 2026"));
+        var workspace = new WorkspaceViewModel(services, new NoUi(), main.CloseSession);
         main.Current = workspace;
 
         foreach (var name in new[] { "Beispiel – Velodiebstahl", "Muster – Musikschule" })

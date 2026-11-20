@@ -18,12 +18,15 @@ No private text, name or mapping ever leaves your computer.
 
 ## How it works
 
-1. **Cases.** Create a case, for example one per client. Each case has its own encrypted
+1. **Session.** On start, create a new session in an empty folder, open an existing
+   session folder, or pick one of the recent sessions, like projects in an IDE. All cases
+   of the session are stored in that folder.
+2. **Cases.** Create a case, for example one per client. Each case has its own
    dictionary of entities, so the same person gets the same placeholder in every document
    of that case.
-2. **Input.** Paste the text or open a `.txt`/`.md` file, then click *Detect private
+3. **Input.** Paste the text or open a `.txt`/`.md` file, then click *Detect private
    information*.
-3. **Detection** runs completely on your computer:
+4. **Detection** runs completely on your computer:
    * regular expressions for structured data (e-mail, phone, IBAN with checksum, AHV
      number, dates, amounts, Swiss addresses, debt-collection and court references),
    * the local Qwen3 model for contextual information (names, organizations, authorities,
@@ -34,12 +37,12 @@ No private text, name or mapping ever leaves your computer.
    Every span the model reports is validated against the original text, and invented
    spans are discarded. All replacements are done deterministically by the application,
    never by the model.
-4. **Review.** Original and anonymized text appear side by side. Uncertain detections
+5. **Review.** Original and anonymized text appear side by side. Uncertain detections
    are highlighted in orange and must be decided: anonymize, keep, or change the
    category. You can select any text to anonymize it manually. Copying is only possible
    after you confirm the review. If you click the copy button too early, it tells you
    what is still missing.
-5. **Restore.** Paste the AI's answer, or open it as a text, Markdown or Word file
+6. **Restore.** Paste the AI's answer, or open it as a text, Markdown or Word file
    (`.docx`). Known placeholders are replaced by the original values. Unknown or
    modified placeholders (e.g. `[PERSON 1]`) are reported, never guessed. A Word
    document is restored into a copy that keeps its formatting, including headers,
@@ -128,17 +131,16 @@ one inference runs at a time.
 * No network access at all: no cloud APIs, no telemetry, no update checks, no model
   downloads, no local HTTP server, no external processes. The application works inside
   an OS-level network sandbox (e.g. with the network disabled).
-* Cases and mappings are encrypted at rest with AES-256-GCM, using a key derived from
-  your password (PBKDF2-HMAC-SHA256, 600 000 iterations). The key is only kept in memory.
-* The text you are working on is saved automatically per case, encrypted, inside the
-  case. Only *Save as…* writes it to a file outside the vault (unencrypted). Deleting a
-  case deletes its text and its key, so leftover copies of the file can't be decrypted.
-* File names inside the vault are keyed hashes and reveal nothing; restoring an old copy
-  of a case file is detected.
-* No logging of texts, names or mappings, and no plaintext temporary files.
+* Cases are stored **unencrypted** as JSON files in the session folder you choose:
+  the case name, the mappings between original values and placeholders, and the text
+  you are working on (saved automatically). Choose a folder only you can access,
+  ideally on an encrypted disk (BitLocker, FileVault, LUKS).
+* Only *Save as…* writes the text to a file outside the session. Deleting a case
+  deletes its file.
+* No logging of texts, names or mappings.
 * Only the text you approved on the *Review* screen is ever exported (clipboard). The
   restored answer contains the original names; it is copied or saved (restored Word
-  document, unencrypted) only when you ask for it.
+  document) only when you ask for it.
 
 See [docs/privacy-architecture.md](docs/privacy-architecture.md) for details.
 
@@ -158,9 +160,7 @@ dotnet run --project src/HajdeAno.Cli -- restore --dictionary case.dict answer.t
 dotnet run --project src/HajdeAno.Cli -- evaluate --model models/Qwen3-8B-Q4_K_M.gguf
 ```
 
-The dictionary file maps names to placeholders, so the CLI always encrypts it
-(AES-256-GCM with a key derived from a password, which the CLI asks for). It never writes
-the mappings unencrypted.
+The dictionary file is JSON and maps names to placeholders, so keep it private.
 
 ## Contributing
 

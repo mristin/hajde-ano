@@ -5,7 +5,7 @@
     xmlns:views="using:HajdeAno.App.Views"
     x:Class="HajdeAno.App.Views.MainWindow"
     x:DataType="vm:MainWindowViewModel"
-    Title="Hajde Ano"
+    Title="{Binding Title}"
     Icon="/Assets/hajde-ano.ico"
     Width="1280"
     Height="800"
@@ -14,8 +14,8 @@
     WindowStartupLocation="CenterScreen"
 >
     <Window.DataTemplates>
-        <DataTemplate DataType="vm:UnlockViewModel">
-            <views:UnlockView />
+        <DataTemplate DataType="vm:SessionPickerViewModel">
+            <views:SessionPickerView />
         </DataTemplate>
         <DataTemplate DataType="vm:WorkspaceViewModel">
             <views:WorkspaceView />

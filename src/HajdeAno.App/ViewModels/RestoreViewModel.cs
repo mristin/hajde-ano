@@ -114,7 +114,7 @@ public sealed partial class RestoreViewModel(WorkspaceViewModel workspace) : Vie
 
     private bool CanSaveWord() => WordFileName is not null;
 
-    /// <summary>Write the restored Word document (with the original names, unencrypted).</summary>
+    /// <summary>Write the restored Word document (with the original names).</summary>
     [RelayCommand(CanExecute = nameof(CanSaveWord))]
     private async Task SaveWordAsync()
     {

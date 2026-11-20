@@ -74,6 +74,8 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     public string DataDirectory => _workspace.Services.DataDirectory;
 
+    public string SessionDirectory => _workspace.Services.Session?.Directory ?? "";
+
     public string ModelDirectories => string.Join("\n", AppPaths.ModelDirectories().Distinct());
 
     private void RefreshModels()

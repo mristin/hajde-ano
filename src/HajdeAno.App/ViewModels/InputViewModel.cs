@@ -99,19 +99,19 @@ public sealed partial class InputViewModel : ViewModelBase, IDisposable
             _loadingDraft = false;
         }
 
-        DraftStatus = string.IsNullOrEmpty(Text) ? null : "Restored from the encrypted case.";
+        DraftStatus = string.IsNullOrEmpty(Text) ? null : "Restored from the case.";
     }
 
     /// <summary>
-    /// Save pending changes of the draft into the encrypted case file. Nothing is written if
+    /// Save pending changes of the draft into the case file. Nothing is written if
     /// the text did not actually change. Errors are reported, never thrown, since this also
     /// runs from a timer and when the window closes.
     /// </summary>
     public void FlushDraft()
     {
         _autosave.Stop();
-        var vault = _workspace.Services.Vault;
-        if (!_dirty || _draftCase is null || vault is null)
+        var session = _workspace.Services.Session;
+        if (!_dirty || _draftCase is null || session is null)
         {
             return;
         }
@@ -120,7 +120,7 @@ public sealed partial class InputViewModel : ViewModelBase, IDisposable
         if (draft == _draftCase.Draft)
         {
             _dirty = false;
-            DraftStatus = draft is null ? null : "Saved in the encrypted case.";
+            DraftStatus = draft is null ? null : "Saved in the case.";
             return;
         }
 
@@ -128,9 +128,9 @@ public sealed partial class InputViewModel : ViewModelBase, IDisposable
         _draftCase.Draft = draft;
         try
         {
-            vault.Save(_draftCase);
+            session.Save(_draftCase);
             _dirty = false;
-            DraftStatus = draft is null ? null : "Saved in the encrypted case.";
+            DraftStatus = draft is null ? null : "Saved in the case.";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -277,8 +277,8 @@ public sealed partial class InputViewModel : ViewModelBase, IDisposable
         );
 
     /// <summary>
-    /// Export the original text to a file outside the vault (unencrypted). The text of the
-    /// case itself is always saved automatically, encrypted.
+    /// Export the original text to a file outside the session. The text of the case itself
+    /// is always saved automatically in the session.
     /// </summary>
     [RelayCommand]
     private async Task SaveAsAsync()
@@ -293,7 +293,7 @@ public sealed partial class InputViewModel : ViewModelBase, IDisposable
         {
             await File.WriteAllTextAsync(path, Text);
             Error = null;
-            DraftStatus = "Exported to the file (unencrypted).";
+            DraftStatus = "Exported to the file.";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -302,7 +302,7 @@ public sealed partial class InputViewModel : ViewModelBase, IDisposable
         }
     }
 
-    /// <summary>Replace the text; it is saved to the encrypted case right away.</summary>
+    /// <summary>Replace the text; it is saved to the case right away.</summary>
     private void SetText(string text)
     {
         Text = text;
@@ -389,7 +389,7 @@ public sealed partial class InputViewModel : ViewModelBase, IDisposable
             );
             if (
                 _workspace.CurrentCase?.Id != caseFile.Id
-                || _workspace.Services.Vault?.Contains(caseFile.Id) != true
+                || _workspace.Services.Session?.Contains(caseFile.Id) != true
             )
             {
                 // Never let the names of one case end up in another (or a deleted) case.

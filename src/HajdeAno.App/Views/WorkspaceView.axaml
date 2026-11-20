@@ -16,7 +16,15 @@
         >
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Spacing="8">
-                    <TextBlock Classes="h2" Text="Cases" />
+                    <StackPanel ToolTip.Tip="{Binding SessionDirectory}">
+                        <TextBlock Text="SESSION" FontSize="11" Opacity="0.7" />
+                        <TextBlock
+                            Text="{Binding SessionName}"
+                            FontWeight="SemiBold"
+                            TextTrimming="CharacterEllipsis"
+                        />
+                    </StackPanel>
+                    <TextBlock Classes="h2" Text="Cases" Margin="0,8,0,0" />
                     <TextBox PlaceholderText="New case name" Text="{Binding NewCaseName}" />
                     <Button
                         Content="Create case"
@@ -31,8 +39,8 @@
                         HorizontalAlignment="Stretch"
                     />
                     <Button
-                        Content="Lock"
-                        Command="{Binding LockCommand}"
+                        Content="Close session"
+                        Command="{Binding CloseSessionCommand}"
                         HorizontalAlignment="Stretch"
                     />
                 </StackPanel>

@@ -13,7 +13,7 @@
                 <Button
                     Content="Save as…"
                     Command="{Binding SaveAsCommand}"
-                    ToolTip.Tip="Exports the original text unencrypted to a file outside the vault. The text of the case is always saved automatically, encrypted."
+                    ToolTip.Tip="Exports the original text to a file outside the session. The text of the case is always saved automatically in the session."
                 />
                 <TextBlock
                     Text="{Binding DraftStatus}"
@@ -99,7 +99,7 @@
                 Classes="hint"
                 FontSize="12"
                 TextWrapping="Wrap"
-                Text="The text is saved automatically, encrypted, inside the case; it never leaves this computer unless you use Save as…. Detection runs on the local model; nothing is sent anywhere. On an older CPU, the 8B model can take several minutes per pass; Apple Silicon with Metal is much faster."
+                Text="The text is saved automatically in the case, in the session folder; it never leaves this computer unless you use Save as…. Detection runs on the local model; nothing is sent anywhere. On an older CPU, the 8B model can take several minutes per pass; Apple Silicon with Metal is much faster."
             />
         </StackPanel>
         <TextBox

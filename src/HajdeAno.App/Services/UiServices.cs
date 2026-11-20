@@ -105,4 +105,12 @@ public sealed class UiServices(TopLevel topLevel) : IUiServices
         );
         return files.Count == 0 ? null : files[0].TryGetLocalPath();
     }
+
+    public async Task<string?> PickFolderAsync(string title)
+    {
+        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
+            new FolderPickerOpenOptions { Title = title, AllowMultiple = false }
+        );
+        return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
+    }
 }

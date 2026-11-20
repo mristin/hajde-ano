@@ -94,7 +94,12 @@
             <TextBlock
                 Classes="hint"
                 FontSize="12"
-                Text="{Binding DataDirectory, StringFormat='Encrypted cases and settings: {0}'}"
+                Text="{Binding SessionDirectory, StringFormat='Cases of this session: {0}'}"
+            />
+            <TextBlock
+                Classes="hint"
+                FontSize="12"
+                Text="{Binding DataDirectory, StringFormat='Settings and recent sessions: {0}'}"
             />
         </StackPanel>
     </ScrollViewer>

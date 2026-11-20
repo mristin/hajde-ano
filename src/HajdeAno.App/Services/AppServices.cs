@@ -15,15 +15,12 @@ public sealed class AppServices(string dataDirectory) : IDisposable
     /// <summary>Optional extractor override (used for screenshots and tests).</summary>
     public IEntityExtractor? ExtractorOverride { get; set; }
 
-    public Vault? Vault { get; set; }
+    /// <summary>The open session, or null while the session picker is shown.</summary>
+    public Session? Session { get; set; }
 
     public void SaveSettings() => Settings.Save(DataDirectory);
 
-    public void Dispose()
-    {
-        Vault?.Dispose();
-        Models.Dispose();
-    }
+    public void Dispose() => Models.Dispose();
 }
 
 /// <summary>Abstraction over clipboard and file dialogs so view models stay testable.</summary>
@@ -43,4 +40,7 @@ public interface IUiServices
     Task<string?> PickSaveWordFileAsync(string suggestedName);
 
     Task<string?> PickModelFileAsync();
+
+    /// <summary>Ask for a folder (for a session); returns null if cancelled.</summary>
+    Task<string?> PickFolderAsync(string title);
 }

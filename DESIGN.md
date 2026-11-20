@@ -20,7 +20,8 @@ No private information, original text or placeholder mappings must ever leave th
 - Qwen3 4B Q4_K_M as an optional faster alternative
 - System.Text.RegularExpressions for deterministic pattern detection
 - System.Text.Json for structured LLM output and serialization
-- Encrypted local storage for case dictionaries and placeholder mappings
+- Local storage for case dictionaries and placeholder mappings in a session folder chosen
+  by the user (unencrypted; rely on full-disk encryption)
 
 The application must run on computers with 16 GB RAM, without a dedicated GPU.
 
@@ -235,7 +236,7 @@ Example:
   }
 }
 
-Store this information only locally and encrypt it at rest.
+Store this information only locally, in the session folder chosen by the user.
 
 The user should be able to:
 
@@ -341,8 +342,8 @@ These are mandatory:
 - No logging of private texts, names or mappings.
 - No plaintext sensitive data in temporary files.
 - No crash reports containing private information.
-- Encrypt persistent case dictionaries and mappings.
-- Use an OS-protected key or password-derived encryption key.
+- Store persistent case dictionaries and mappings only in the session folder chosen by
+  the user, and tell the user that they are not encrypted.
 - If the model is missing, show a local error instead of downloading anything.
 - Only the explicitly approved anonymized text may be exported.
 
@@ -505,7 +506,7 @@ Create comprehensive unit tests.
 
 Phase 3:
 
-Implement persistent encrypted case dictionaries.
+Implement persistent case dictionaries.
 
 Implement the second detection pass.
 

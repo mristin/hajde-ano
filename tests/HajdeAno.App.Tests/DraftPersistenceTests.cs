@@ -1,4 +1,3 @@
-using System.Text;
 using Avalonia;
 using Avalonia.Headless;
 using HajdeAno.App.Services;
@@ -23,6 +22,19 @@ public static class TestAppBuilder
             .UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .WithInterFont();
+}
+
+/// <summary>Opens sessions the way the user does, through the session picker.</summary>
+internal static class TestSession
+{
+    /// <summary>Create the session in <paramref name="directory"/> (or open it if it exists).</summary>
+    public static WorkspaceViewModel Open(MainWindowViewModel main, string directory)
+    {
+        var picker = Assert.IsType<SessionPickerViewModel>(main.Current);
+        picker.CreateSession(directory);
+        Assert.Null(picker.Error);
+        return Assert.IsType<WorkspaceViewModel>(main.Current);
+    }
 }
 
 /// <summary>File dialog that "opens" a fixed file; clipboard is ignored.</summary>
@@ -55,16 +67,19 @@ internal sealed class FakeUi(string fileToOpen) : IUiServices
         Task.FromResult(SaveWordPath);
 
     public Task<string?> PickModelFileAsync() => Task.FromResult<string?>(null);
+
+    /// <summary>What the next folder dialog returns.</summary>
+    public string? FolderPath { get; set; }
+
+    public Task<string?> PickFolderAsync(string title) => Task.FromResult(FolderPath);
 }
 
 /// <summary>
-/// End-to-end: open a file in the program, close the program, start it again and unlock
-/// the vault: the text must be back, and must never be on disk in plaintext.
+/// End-to-end: open a file in the program, close the program, start it again and reopen
+/// the session: the text must be back.
 /// </summary>
 public sealed class DraftPersistenceTests : IDisposable
 {
-    private const string Password = "synthetic password 123";
-
     // Fictional text only.
     private const string SyntheticText =
         "Zora Blumenthal aus Olten bestreitet die Rechnung der Velowerkstatt Speiche GmbH über CHF 380.00.";
@@ -75,6 +90,8 @@ public sealed class DraftPersistenceTests : IDisposable
     );
 
     private string DataDir => Path.Combine(_root, "data");
+
+    private string SessionDir => Path.Combine(_root, "session");
 
     private string InputFile => Path.Combine(_root, "brief.txt");
 
@@ -106,15 +123,8 @@ public sealed class DraftPersistenceTests : IDisposable
         return (window, main, services);
     }
 
-    private static async Task<WorkspaceViewModel> UnlockAsync(MainWindowViewModel main)
-    {
-        var unlock = Assert.IsType<UnlockViewModel>(main.Current);
-        unlock.Password = Password;
-        unlock.ConfirmPassword = Password;
-        await unlock.UnlockCommand.ExecuteAsync(null);
-        Assert.Null(unlock.Error);
-        return Assert.IsType<WorkspaceViewModel>(main.Current);
-    }
+    private WorkspaceViewModel OpenSession(MainWindowViewModel main) =>
+        TestSession.Open(main, SessionDir);
 
     /// <summary>Close the program like the user does: close the window, then exit.</summary>
     private static void Close(MainWindow window, AppServices services)
@@ -130,29 +140,32 @@ public sealed class DraftPersistenceTests : IDisposable
         await session.Dispatch(
             async () =>
             {
-                // First run: create the vault and a case, open the file, close at once
+                // First run: create the session and a case, open the file, close at once
                 // (before the autosave timer fires).
                 var (window, main, services) = Start();
-                var workspace = await UnlockAsync(main);
+                var workspace = OpenSession(main);
                 workspace.NewCaseName = "Synthetischer Fall";
                 workspace.CreateCaseCommand.Execute(null);
                 await workspace.Input.OpenFileCommand.ExecuteAsync(null);
                 Assert.Equal(SyntheticText, workspace.Input.Text);
                 Close(window, services);
 
-                // Second run: unlock again; the case is selected and the text is back.
+                // Second run: reopen the session from the recent list; the case is
+                // selected and the text is back.
                 (window, main, services) = Start();
-                workspace = await UnlockAsync(main);
+                var picker = Assert.IsType<SessionPickerViewModel>(main.Current);
+                var recent = Assert.Single(picker.Recent);
+                Assert.Equal(Path.GetFullPath(SessionDir), recent.Directory);
+                recent.OpenCommand.Execute(null);
+                workspace = Assert.IsType<WorkspaceViewModel>(main.Current);
                 Assert.Equal("Synthetischer Fall", workspace.SelectedCase?.Name);
                 Assert.Equal(SyntheticText, workspace.Input.Text);
-                Assert.Equal("Restored from the encrypted case.", workspace.Input.DraftStatus);
+                Assert.Equal("Restored from the case.", workspace.Input.DraftStatus);
                 Close(window, services);
                 return true;
             },
             CancellationToken.None
         );
-
-        AssertNoPlaintextOnDisk();
     }
 
     [Fact]
@@ -163,7 +176,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = await UnlockAsync(main);
+                var workspace = OpenSession(main);
 
                 workspace.NewCaseName = "Fall A";
                 workspace.CreateCaseCommand.Execute(null);
@@ -182,20 +195,18 @@ public sealed class DraftPersistenceTests : IDisposable
                 workspace.SelectedCase = workspace.Cases.Single(c => c.Name == "Fall B");
                 Assert.Equal("Nur für Fall B.", workspace.Input.Text);
 
-                // Locking saves the draft as well.
-                workspace.Input.Text = "Geändert vor dem Sperren.";
-                main.Lock();
-                workspace = await UnlockAsync(main);
+                // Closing the session saves the draft as well.
+                workspace.Input.Text = "Geändert vor dem Schliessen.";
+                workspace.CloseSessionCommand.Execute(null);
+                workspace = OpenSession(main);
                 workspace.SelectedCase = workspace.Cases.Single(c => c.Name == "Fall B");
-                Assert.Equal("Geändert vor dem Sperren.", workspace.Input.Text);
+                Assert.Equal("Geändert vor dem Schliessen.", workspace.Input.Text);
 
                 Close(window, services);
                 return true;
             },
             CancellationToken.None
         );
-
-        AssertNoPlaintextOnDisk();
     }
 
     [Fact]
@@ -206,7 +217,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = await UnlockAsync(main);
+                var workspace = OpenSession(main);
                 workspace.NewCaseName = "Zu löschen";
                 workspace.CreateCaseCommand.Execute(null);
                 await workspace.Input.OpenFileCommand.ExecuteAsync(null);
@@ -222,7 +233,7 @@ public sealed class DraftPersistenceTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.Empty(Directory.EnumerateFiles(Path.Combine(DataDir, "cases")));
+        Assert.Empty(Directory.EnumerateFiles(Path.Combine(SessionDir, "cases")));
     }
 
     [Fact]
@@ -233,7 +244,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = await UnlockAsync(main);
+                var workspace = OpenSession(main);
                 workspace.NewCaseName = "Dateien";
                 workspace.CreateCaseCommand.Execute(null);
                 var input = workspace.Input;
@@ -281,7 +292,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = await UnlockAsync(main);
+                var workspace = OpenSession(main);
                 workspace.NewCaseName = "Autosave";
                 workspace.CreateCaseCommand.Execute(null);
                 var input = workspace.Input;
@@ -336,21 +347,22 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = await UnlockAsync(main);
+                var workspace = OpenSession(main);
                 workspace.NewCaseName = "Fall B";
                 workspace.CreateCaseCommand.Execute(null);
                 workspace.NewCaseName = "Fall A";
                 workspace.CreateCaseCommand.Execute(null);
                 await workspace.Input.OpenFileCommand.ExecuteAsync(null);
 
-                // While the detection runs, the case cannot be switched, deleted or locked.
+                // While the detection runs, the case cannot be switched or deleted, and the
+                // session cannot be closed.
                 var extractor = new GatedExtractor();
                 services.ExtractorOverride = extractor;
                 var detection = workspace.Input.DetectCommand.ExecuteAsync(null);
                 Assert.True(workspace.IsDetecting);
                 Assert.False(workspace.CanSwitchCase);
                 Assert.False(workspace.DeleteCaseCommand.CanExecute(null));
-                Assert.False(workspace.LockCommand.CanExecute(null));
+                Assert.False(workspace.CloseSessionCommand.CanExecute(null));
                 workspace.NewCaseName = "Fall C";
                 Assert.False(workspace.CreateCaseCommand.CanExecute(null));
 
@@ -376,22 +388,5 @@ public sealed class DraftPersistenceTests : IDisposable
             },
             CancellationToken.None
         );
-    }
-
-    private void AssertNoPlaintextOnDisk()
-    {
-        foreach (var file in Directory.EnumerateFiles(DataDir, "*", SearchOption.AllDirectories))
-        {
-            var bytes = File.ReadAllBytes(file);
-            foreach (
-                var secret in new[] { "Blumenthal", "Velowerkstatt", "Fall B", "Synthetischer" }
-            )
-            {
-                Assert.False(
-                    bytes.AsSpan().IndexOf(Encoding.UTF8.GetBytes(secret)) >= 0,
-                    $"\"{secret}\" found in plaintext in {Path.GetFileName(file)}"
-                );
-            }
-        }
     }
 }

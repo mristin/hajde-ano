@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 
 namespace HajdeAno.App.Controls;
 
@@ -26,19 +27,19 @@ public sealed class HighlightedTextBlock : SelectableTextBlock
         set => SetValue(SegmentsProperty, value);
     }
 
-    private static readonly IBrush ReplacedBrush = new SolidColorBrush(
+    private static readonly IBrush ReplacedBrush = new ImmutableSolidColorBrush(
         Color.FromArgb(0x55, 0x2E, 0xA0, 0x43)
     );
-    private static readonly IBrush ReviewBrush = new SolidColorBrush(
+    private static readonly IBrush ReviewBrush = new ImmutableSolidColorBrush(
         Color.FromArgb(0x88, 0xF5, 0xA6, 0x23)
     );
-    private static readonly IBrush RejectedBrush = new SolidColorBrush(
+    private static readonly IBrush RejectedBrush = new ImmutableSolidColorBrush(
         Color.FromArgb(0x33, 0x80, 0x80, 0x80)
     );
-    private static readonly IBrush PlaceholderBrush = new SolidColorBrush(
+    private static readonly IBrush PlaceholderBrush = new ImmutableSolidColorBrush(
         Color.FromArgb(0x55, 0x3B, 0x82, 0xF6)
     );
-    private static readonly IBrush ProblemBrush = new SolidColorBrush(
+    private static readonly IBrush ProblemBrush = new ImmutableSolidColorBrush(
         Color.FromArgb(0x77, 0xEF, 0x44, 0x44)
     );
 

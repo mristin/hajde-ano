@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using HajdeAno.Core;
 using HajdeAno.Core.Llm;
-using HajdeAno.Core.Storage;
 using HajdeAno.Llm;
 
 namespace HajdeAno.Cli;
@@ -28,9 +27,7 @@ internal static class Program
           restore   --dictionary DICT.dict FILE
                     Restore the placeholders in FILE.
 
-        Dictionary files map names to placeholders and are therefore always encrypted
-        (AES-256-GCM, key derived from a password which is asked for on the terminal, or
-        read from the first line of standard input if it is redirected).
+        Dictionary files are JSON and map names to placeholders; keep them private.
           evaluate  [--model PATH] [--data DIR] [--report OUT.md] [--no-second-pass]
                     Measure recall on the annotated synthetic cases.
 
@@ -277,89 +274,14 @@ internal static class Program
         return result.Issues.Count == 0 ? 0 : 2;
     }
 
-    /// <summary>Read a password from the terminal without echoing it.</summary>
-    private static string ReadPassword(string prompt)
-    {
-        Console.Error.Write(prompt);
-        if (Console.IsInputRedirected)
-        {
-            Console.Error.WriteLine();
-            return Console.In.ReadLine() ?? "";
-        }
-
-        var sb = new StringBuilder();
-        while (true)
-        {
-            var key = Console.ReadKey(intercept: true);
-            if (key.Key == ConsoleKey.Enter)
-            {
-                Console.Error.WriteLine();
-                return sb.ToString();
-            }
-
-            if (key.Key == ConsoleKey.Backspace)
-            {
-                if (sb.Length > 0)
-                {
-                    sb.Length--;
-                }
-            }
-            else if (!char.IsControl(key.KeyChar))
-            {
-                sb.Append(key.KeyChar);
-            }
-        }
-    }
-
-    private static CaseDictionary ReadDictionary(string path)
-    {
-        var data = File.ReadAllBytes(path);
-        if (!Crypto.IsPasswordEncrypted(data))
-        {
-            throw new InvalidDataException(
-                $"{path} is not an encrypted dictionary. Dictionaries are never stored unencrypted."
-            );
-        }
-
-        var plaintext = Crypto.DecryptWithPassword(
-            ReadPassword("Password of the dictionary: "),
-            data
-        );
-        try
-        {
-            return CaseDictionary.FromJson(Encoding.UTF8.GetString(plaintext));
-        }
-        finally
-        {
-            System.Security.Cryptography.CryptographicOperations.ZeroMemory(plaintext);
-        }
-    }
+    private static CaseDictionary ReadDictionary(string path) =>
+        CaseDictionary.FromJson(File.ReadAllText(path));
 
     private static void WriteDictionary(string path, CaseDictionary dictionary)
     {
-        var password = ReadPassword("Password to encrypt the dictionary: ");
-        if (password.Length < 8)
-        {
-            throw new ArgumentException("The password must have at least 8 characters");
-        }
-
-        if (!Console.IsInputRedirected && ReadPassword("Repeat the password: ") != password)
-        {
-            throw new ArgumentException("The passwords do not match");
-        }
-
-        var plaintext = Encoding.UTF8.GetBytes(dictionary.ToJson());
-        try
-        {
-            var data = Crypto.EncryptWithPassword(password, plaintext);
-            var tmp = path + ".tmp";
-            File.WriteAllBytes(tmp, data);
-            File.Move(tmp, path, overwrite: true);
-        }
-        finally
-        {
-            System.Security.Cryptography.CryptographicOperations.ZeroMemory(plaintext);
-        }
+        var tmp = path + ".tmp";
+        File.WriteAllText(tmp, dictionary.ToJson());
+        File.Move(tmp, path, overwrite: true);
     }
 
     private static async Task<int> EvaluateAsync(Options o)

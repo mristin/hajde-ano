@@ -18,8 +18,6 @@ namespace HajdeAno.App.Tests;
 /// </summary>
 public sealed class ReviewSelectionTests : IDisposable
 {
-    private const string Password = "synthetic password 123";
-
     // Fictional text only. The model "finds" nothing, so the surname must be added by hand.
     private const string SyntheticText =
         "Sehr geehrte Frau Blumenthal, wir bestätigen den Eingang Ihres Schreibens. Frau Blumenthal erhält die Antwort bis Freitag.";
@@ -98,11 +96,7 @@ public sealed class ReviewSelectionTests : IDisposable
                 window.DataContext = main;
                 window.Show();
 
-                var unlock = Assert.IsType<UnlockViewModel>(main.Current);
-                unlock.Password = Password;
-                unlock.ConfirmPassword = Password;
-                await unlock.UnlockCommand.ExecuteAsync(null);
-                var workspace = Assert.IsType<WorkspaceViewModel>(main.Current);
+                var workspace = TestSession.Open(main, Path.Combine(_root, "session"));
                 workspace.NewCaseName = "Auswahl";
                 workspace.CreateCaseCommand.Execute(null);
                 workspace.Input.Text = SyntheticText;
@@ -170,11 +164,7 @@ public sealed class ReviewSelectionTests : IDisposable
                 window.DataContext = main;
                 window.Show();
 
-                var unlock = Assert.IsType<UnlockViewModel>(main.Current);
-                unlock.Password = Password;
-                unlock.ConfirmPassword = Password;
-                await unlock.UnlockCommand.ExecuteAsync(null);
-                var workspace = Assert.IsType<WorkspaceViewModel>(main.Current);
+                var workspace = TestSession.Open(main, Path.Combine(_root, "session"));
                 workspace.NewCaseName = "Kopieren";
                 workspace.CreateCaseCommand.Execute(null);
                 var review = workspace.Review;

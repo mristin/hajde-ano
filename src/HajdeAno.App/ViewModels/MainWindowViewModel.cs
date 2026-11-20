@@ -9,18 +9,26 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IUiServices _ui;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
     private ViewModelBase _current;
 
     public MainWindowViewModel(AppServices services, IUiServices ui)
     {
         _services = services;
         _ui = ui;
-        _current = new UnlockViewModel(services, OnUnlocked);
+        _current = NewPicker();
     }
 
-    private void OnUnlocked() => Current = new WorkspaceViewModel(_services, _ui, Lock);
+    /// <summary>Window title: the name of the open session, if any.</summary>
+    public string Title =>
+        _services.Session is { } session ? $"{session.Name} – Hajde Ano" : "Hajde Ano";
 
-    /// <summary>Persist unsaved drafts (before locking or exiting).</summary>
+    private SessionPickerViewModel NewPicker() => new(_services, _ui, OnSessionOpened);
+
+    private void OnSessionOpened() =>
+        Current = new WorkspaceViewModel(_services, _ui, CloseSession);
+
+    /// <summary>Persist unsaved drafts (before closing the session or exiting).</summary>
     public void FlushDrafts()
     {
         if (Current is WorkspaceViewModel workspace)
@@ -52,18 +60,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 );
             }
         }
-        else if (Current is UnlockViewModel unlock)
+        else if (Current is SessionPickerViewModel picker)
         {
-            unlock.Error = message;
+            picker.Error = message;
         }
     }
 
-    public void Lock()
+    /// <summary>Save, close the session and go back to the session picker.</summary>
+    public void CloseSession()
     {
         FlushDrafts();
-        _services.Vault?.Dispose();
-        _services.Vault = null;
-        _services.Models.Unload();
-        Current = new UnlockViewModel(_services, OnUnlocked);
+        _services.Session = null;
+        Current = NewPicker();
     }
 }
