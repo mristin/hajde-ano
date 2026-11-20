@@ -66,10 +66,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Save, close the session and go back to the session picker.</summary>
+    /// <summary>
+    /// Save, close the session (forgetting its key) and go back to the session picker.
+    /// </summary>
     public void CloseSession()
     {
         FlushDrafts();
+        _services.Session?.Dispose();
         _services.Session = null;
         Current = NewPicker();
     }

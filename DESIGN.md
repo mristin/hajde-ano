@@ -21,7 +21,7 @@ No private information, original text or placeholder mappings must ever leave th
 - System.Text.RegularExpressions for deterministic pattern detection
 - System.Text.Json for structured LLM output and serialization
 - Local storage for case dictionaries and placeholder mappings in a session folder chosen
-  by the user (unencrypted; rely on full-disk encryption)
+  by the user, optionally encrypted with a password
 
 The application must run on computers with 16 GB RAM, without a dedicated GPU.
 
@@ -343,7 +343,8 @@ These are mandatory:
 - No plaintext sensitive data in temporary files.
 - No crash reports containing private information.
 - Store persistent case dictionaries and mappings only in the session folder chosen by
-  the user, and tell the user that they are not encrypted.
+  the user. Offer password-derived encryption (AES-256-GCM, PBKDF2) when a session is
+  created, and tell the user that unencrypted sessions are stored in plaintext.
 - If the model is missing, show a local error instead of downloading anything.
 - Only the explicitly approved anonymized text may be exported.
 

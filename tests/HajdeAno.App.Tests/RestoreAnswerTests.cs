@@ -90,7 +90,7 @@ public sealed class RestoreAnswerTests : IDisposable
                 var main = new MainWindowViewModel(services, ui);
                 window.DataContext = main;
                 window.Show();
-                var workspace = TestSession.Open(main, Path.Combine(_root, "session"));
+                var workspace = await TestSession.OpenAsync(main, Path.Combine(_root, "session"));
                 workspace.NewCaseName = "Antwort";
                 workspace.CreateCaseCommand.Execute(null);
                 workspace.CurrentCase!.Dictionary.Assign("Zora Blumenthal", Category.Person);

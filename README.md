@@ -20,7 +20,8 @@ No private text, name or mapping ever leaves your computer.
 
 1. **Session.** On start, create a new session in an empty folder, open an existing
    session folder, or pick one of the recent sessions, like projects in an IDE. All cases
-   of the session are stored in that folder.
+   of the session are stored in that folder. A new session can optionally be encrypted
+   with a password, which is then asked for whenever the session is opened.
 2. **Cases.** Create a case, for example one per client. Each case has its own
    dictionary of entities, so the same person gets the same placeholder in every document
    of that case.
@@ -131,10 +132,13 @@ one inference runs at a time.
 * No network access at all: no cloud APIs, no telemetry, no update checks, no model
   downloads, no local HTTP server, no external processes. The application works inside
   an OS-level network sandbox (e.g. with the network disabled).
-* Cases are stored **unencrypted** as JSON files in the session folder you choose:
-  the case name, the mappings between original values and placeholders, and the text
-  you are working on (saved automatically). Choose a folder only you can access,
-  ideally on an encrypted disk (BitLocker, FileVault, LUKS).
+* Cases are stored in the session folder you choose: the case name, the mappings
+  between original values and placeholders, and the text you are working on (saved
+  automatically). In an **encrypted session**, each case file is encrypted with
+  AES-256-GCM, using a key derived from your password (PBKDF2-HMAC-SHA256, 600 000
+  iterations); the key is only kept in memory while the session is open. In an
+  **unencrypted session**, the cases are plain JSON; choose a folder only you can
+  access, ideally on an encrypted disk (BitLocker, FileVault, LUKS).
 * Only *Save as…* writes the text to a file outside the session. Deleting a case
   deletes its file.
 * No logging of texts, names or mappings.

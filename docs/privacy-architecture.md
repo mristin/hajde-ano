@@ -11,7 +11,7 @@ flowchart LR
         orig["Original text<br/>(memory; draft<br/>in the case file)"]
         regex["Regex detector"]
         llm["Local LLM<br/>Qwen3 via llama.cpp<br/>(in-process)"]
-        dict[("Case dictionary<br/>session folder")]
+        dict[("Case dictionary<br/>session folder,<br/>optionally AES-256-GCM")]
         merge["Merge spans"]
         ph["Assign placeholders"]
         anon["Anonymized text"]
@@ -38,7 +38,7 @@ flowchart LR
 ```
 
 * The **original text** is kept in memory and, as an autosaved draft of the case, in the
-  case file inside the session folder (unencrypted).
+  case file inside the session folder (encrypted if the session is).
 * The **local LLM** runs in-process through LLamaSharp (llama.cpp). There is no server,
   no localhost port and no external process. The model only returns a JSON list of
   spans; the application checks that each span occurs in the text and performs all
@@ -52,16 +52,33 @@ flowchart LR
 
 | Data | Location | Protection |
 |---|---|---|
-| Case name, entity dictionary (original values ↔ placeholders), terms marked as not sensitive, the text of the case | `<session folder>/cases/<case id>.json` | **None** (plain JSON). The file name is the random case id and reveals nothing |
-| Session marker (format version) | `<session folder>/hajde-ano-session.json` | Contains no private data |
+| Case name, entity dictionary (original values ↔ placeholders), terms marked as not sensitive, the text of the case | Encrypted session: `<session folder>/cases/<case id>.case` | AES-256-GCM with a key derived from the password. The case id is authenticated as associated data, so case files can't be swapped. The file name is the random case id and reveals nothing |
+| The same | Unencrypted session: `<session folder>/cases/<case id>.json` | **None** (plain JSON) |
+| Session marker (format version; for encrypted sessions also salt, iteration count and an encrypted password check) | `<session folder>/hajde-ano-session.json` | Contains no private data. Validated when opening (bounded iteration count, salt size), so a damaged file is reported instead of crashing or hanging |
 | Settings (model path, context size, categories) and the list of recent session folders | `<data dir>/settings.json` | The folder names of the sessions are visible here |
 | Anonymized documents, AI answers, restored texts | Nowhere | Kept in memory only |
 
-The **session folder** is chosen by the user when creating or opening a session. Since
-the cases are not encrypted, anyone who can read that folder can read the names and
-their placeholders. Choose a folder only you can access, ideally on a disk with
-full-disk encryption (BitLocker, FileVault, LUKS), and keep in mind that cloud-synced
-folders (OneDrive, iCloud Drive, Dropbox) upload the cases.
+The **session folder** is chosen by the user when creating or opening a session, and
+encryption is chosen when the session is created. Files and folders of a session are
+created readable by the user only (mode 0600/0700 on Linux and macOS).
+
+* In an **encrypted session**, one can still see, without the password, how many cases
+  exist, their sizes and when they were last changed.
+* In an **unencrypted session**, anyone who can read the folder can read the names and
+  their placeholders. Choose a folder only you can access, ideally on a disk with
+  full-disk encryption (BitLocker, FileVault, LUKS).
+
+Either way, keep in mind that cloud-synced folders (OneDrive, iCloud Drive, Dropbox)
+upload the case files.
+
+### Key management (encrypted sessions)
+
+The key is derived from the session password with PBKDF2-HMAC-SHA256 (600 000
+iterations, 128-bit random salt); independent sub-keys for the password check and the
+case files are derived with HKDF-SHA256. The key exists only in memory while the session
+is open and is zeroed when the session is closed or the application exits. A lost
+password cannot be recovered, and the cases are lost with it. The password cannot be
+changed or removed later; create a new session for that.
 
 The data directory is the per-user application data folder, e.g. `%APPDATA%\HajdeAno`
 on Windows or `~/.config/HajdeAno` on Linux. Both paths are shown in *Settings*. The
@@ -71,8 +88,8 @@ data directory can be overridden with `HAJDE_ANO_DATA_DIR`.
 
 Every write goes to a temporary file in the same folder, which is flushed to the disk and
 then renamed over the old file. A crash or power loss therefore leaves either the old or
-the new file, never a mix. Leftover temporary files are removed when the session is
-opened.
+the new file, never a mix. In an encrypted session, the temporary files contain only
+ciphertext. Leftover temporary files are removed when the session is opened.
 
 The text of the case is saved automatically 1 second after you stop typing, and at least
 every 10 seconds while you keep typing, but only if it actually changed. A case file is
@@ -116,8 +133,13 @@ executable on Windows and macOS. All features keep working.
   tools (e.g. Windows clipboard history), and clipboard sync can carry it to other
   devices. Only approved anonymized text and restored text are copied, at the user's
   explicit request. Restored text contains the original names.
-* **Unencrypted storage.** The session folder holds the original names and the text of
-  each case in plain JSON. Protect it with file permissions and full-disk encryption.
+* **Unencrypted sessions.** The session folder holds the original names and the text of
+  each case in plain JSON. Encrypt the session, or protect the folder with file
+  permissions and full-disk encryption.
+* **Rollback.** Even in an encrypted session, an older copy of a case file (from a
+  backup, or put back by someone with access to the folder) is accepted. Deleting a case
+  deletes its file, but copies left behind (free disk blocks, snapshots, backups) can
+  still be decrypted with the password.
 * **Save as.** *Save as…* on the input screen exports the original text to a file you
   choose, outside the session. Likewise, *Save restored Word document…* writes the
   restored answer, with the original names.

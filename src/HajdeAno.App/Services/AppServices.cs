@@ -20,7 +20,11 @@ public sealed class AppServices(string dataDirectory) : IDisposable
 
     public void SaveSettings() => Settings.Save(DataDirectory);
 
-    public void Dispose() => Models.Dispose();
+    public void Dispose()
+    {
+        Session?.Dispose();
+        Models.Dispose();
+    }
 }
 
 /// <summary>Abstraction over clipboard and file dialogs so view models stay testable.</summary>

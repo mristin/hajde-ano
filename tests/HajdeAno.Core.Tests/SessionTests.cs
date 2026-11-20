@@ -1,3 +1,4 @@
+using System.Text;
 using HajdeAno.Core.Storage;
 
 namespace HajdeAno.Core.Tests;
@@ -16,6 +17,10 @@ public sealed class SessionTests : IDisposable
             Directory.Delete(_dir, recursive: true);
         }
     }
+
+    // Low iteration count keeps the tests fast; production uses Crypto.DefaultIterations.
+    private const int Iterations = 1000;
+    private const string Password = "correct horse battery";
 
     private static CaseFile SampleCase()
     {
@@ -160,5 +165,119 @@ public sealed class SessionTests : IDisposable
         var session = Session.Create(_dir);
         Assert.Throws<ArgumentException>(() => session.Load("../etc/passwd"));
         Assert.Throws<ArgumentException>(() => session.Save(new CaseFile { Id = "../x" }));
+    }
+
+    [Fact]
+    public void Encrypted_round_trip()
+    {
+        using (var session = Session.Create(_dir, Password, Iterations))
+        {
+            Assert.True(session.IsEncrypted);
+            session.Save(SampleCase());
+        }
+
+        Assert.True(Session.IsEncryptedSession(_dir));
+        using var reopened = Session.Open(_dir, Password);
+        var loaded = Assert.Single(reopened.LoadAll().Cases);
+        Assert.Equal("Fall Muster-Testperson", loaded.Name);
+        Assert.Equal("Anna", loaded.Dictionary.Resolve("PERSON_1_FIRST"));
+    }
+
+    [Fact]
+    public void Unencrypted_sessions_are_not_reported_as_encrypted()
+    {
+        Session.Create(_dir).Save(SampleCase());
+        Assert.False(Session.IsEncryptedSession(_dir));
+        Assert.Throws<SessionException>(() => Session.Open(_dir, Password));
+    }
+
+    [Fact]
+    public void Wrong_or_missing_password_is_rejected()
+    {
+        using (Session.Create(_dir, Password, Iterations)) { }
+        Assert.Throws<UnauthorizedAccessException>(() => Session.Open(_dir, "wrong password!"));
+        Assert.Throws<UnauthorizedAccessException>(() => Session.Open(_dir));
+    }
+
+    [Fact]
+    public void Short_password_is_rejected()
+    {
+        Assert.Throws<ArgumentException>(() => Session.Create(_dir, "short", Iterations));
+        Assert.False(Session.IsSession(_dir));
+    }
+
+    [Fact]
+    public void Nothing_private_is_stored_in_plaintext_in_an_encrypted_session()
+    {
+        using var session = Session.Create(_dir, Password, Iterations);
+        var c = SampleCase();
+        session.Save(c);
+        foreach (var file in Directory.EnumerateFiles(_dir, "*", SearchOption.AllDirectories))
+        {
+            var bytes = File.ReadAllBytes(file);
+            foreach (var secret in new[] { "Müller", "Muster-Testperson", "Blumenthal" })
+            {
+                Assert.True(
+                    bytes.AsSpan().IndexOf(Encoding.UTF8.GetBytes(secret)) < 0,
+                    $"{secret} found in {Path.GetFileName(file)}"
+                );
+            }
+        }
+
+        Assert.Equal(
+            c.Id + ".case",
+            Path.GetFileName(Assert.Single(Directory.EnumerateFiles(Path.Combine(_dir, "cases"))))
+        );
+    }
+
+    [Fact]
+    public void Tampered_or_swapped_case_files_are_skipped()
+    {
+        using var session = Session.Create(_dir, Password, Iterations);
+        var a = SampleCase();
+        var b = SampleCase();
+        session.Save(a);
+        session.Save(b);
+        var pathA = Path.Combine(_dir, "cases", a.Id + ".case");
+        var pathB = Path.Combine(_dir, "cases", b.Id + ".case");
+
+        // Case b replaced by a copy of case a: the id is authenticated.
+        File.Copy(pathA, pathB, overwrite: true);
+        Assert.Throws<InvalidDataException>(() => session.Load(b.Id));
+
+        // A flipped bit in case a.
+        var data = File.ReadAllBytes(pathA);
+        data[^1] ^= 1;
+        File.WriteAllBytes(pathA, data);
+        Assert.Throws<InvalidDataException>(() => session.Load(a.Id));
+        Assert.Equal(2, session.LoadAll().Unreadable);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(int.MaxValue)]
+    public void Damaged_iteration_counts_are_rejected_without_hanging(int iterations)
+    {
+        using (Session.Create(_dir, Password, Iterations)) { }
+        var marker = Path.Combine(_dir, Session.MarkerFileName);
+        File.WriteAllText(
+            marker,
+            File.ReadAllText(marker)
+                .Replace(
+                    $"\"iterations\": {Iterations}",
+                    $"\"iterations\": {iterations}",
+                    StringComparison.Ordinal
+                )
+        );
+        Assert.Throws<SessionException>(() => Session.IsEncryptedSession(_dir));
+        Assert.Throws<SessionException>(() => Session.Open(_dir, Password));
+    }
+
+    [Fact]
+    public void A_closed_session_cannot_be_used()
+    {
+        var session = Session.Create(_dir, Password, Iterations);
+        session.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => session.Save(SampleCase()));
     }
 }

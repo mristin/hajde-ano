@@ -152,10 +152,14 @@ internal static class Program
 
         // 1. Session picker with a few (synthetic) recent sessions.
         var sessionsRoot = Path.Combine(dataDir, "sessions");
-        foreach (var name in new[] { "Mietrecht 2026", "Versicherungen", "Familie" })
+        foreach (var name in new[] { "Mietrecht 2026", "Familie" })
         {
-            Session.Create(Path.Combine(sessionsRoot, name));
+            Session.Create(Path.Combine(sessionsRoot, name)).Dispose();
         }
+
+        Session
+            .Create(Path.Combine(sessionsRoot, "Versicherungen"), "synthetic-password", 1000)
+            .Dispose();
 
         foreach (var name in new[] { "Familie", "Versicherungen", "Mietrecht 2026" })
         {

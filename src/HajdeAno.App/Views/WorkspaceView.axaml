@@ -17,7 +17,7 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Spacing="8">
                     <StackPanel ToolTip.Tip="{Binding SessionDirectory}">
-                        <TextBlock Text="SESSION" FontSize="11" Opacity="0.7" />
+                        <TextBlock Text="{Binding SessionLabel}" FontSize="11" Opacity="0.7" />
                         <TextBlock
                             Text="{Binding SessionName}"
                             FontWeight="SemiBold"

@@ -43,8 +43,8 @@
                             />
                             <TextBlock
                                 Classes="error"
-                                Text="{Binding Error}"
-                                IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Text="{Binding ChooseError}"
+                                IsVisible="{Binding ChooseError, Converter={x:Static ObjectConverters.IsNotNull}}"
                             />
                         </StackPanel>
                         <TextBlock
@@ -52,13 +52,13 @@
                             Classes="hint"
                             FontSize="12"
                             VerticalAlignment="Bottom"
-                            Text="The cases, including the names and their placeholders, are stored unencrypted. Choose a folder only you can access, ideally on an encrypted disk. Works fully offline."
+                            Text="Unless you encrypt the session, the cases, including the names and their placeholders, are stored unencrypted. Choose a folder only you can access. Works fully offline."
                         />
                     </DockPanel>
                 </Border>
 
                 <!-- Recent sessions -->
-                <DockPanel Grid.Column="1" Margin="16,24,16,16">
+                <DockPanel Grid.Column="1" Margin="16,24,16,16" IsVisible="{Binding IsChoosing}">
                     <TextBlock
                         DockPanel.Dock="Top"
                         Classes="h2"
@@ -114,6 +114,111 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </DockPanel>
+
+                <!-- Options of a new session -->
+                <StackPanel
+                    Grid.Column="1"
+                    Margin="24"
+                    Spacing="12"
+                    IsVisible="{Binding IsCreating}"
+                >
+                    <TextBlock
+                        Classes="h2"
+                        Text="{Binding PendingName, StringFormat='New session: {0}'}"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                    <TextBlock
+                        Classes="hint"
+                        FontSize="12"
+                        Text="{Binding PendingDirectory}"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                    <CheckBox
+                        Content="Encrypt the cases with a password"
+                        IsChecked="{Binding Encrypt}"
+                    />
+                    <StackPanel Spacing="8" IsVisible="{Binding Encrypt}">
+                        <TextBox
+                            PasswordChar="●"
+                            PlaceholderText="Password (at least 8 characters)"
+                            Text="{Binding Password}"
+                        />
+                        <TextBox
+                            PasswordChar="●"
+                            PlaceholderText="Repeat password"
+                            Text="{Binding ConfirmPassword}"
+                        />
+                        <TextBlock
+                            Classes="hint"
+                            FontSize="12"
+                            Text="The cases are encrypted with AES-256-GCM, using a key derived from this password (PBKDF2). A lost password cannot be recovered, and the cases are lost with it."
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Classes="error"
+                        Text="{Binding FormError}"
+                        IsVisible="{Binding FormError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            Classes="accent"
+                            Content="Create session"
+                            Command="{Binding ConfirmCreateCommand}"
+                            IsDefault="{Binding IsCreating}"
+                        />
+                        <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                        <ProgressBar
+                            IsIndeterminate="True"
+                            Width="100"
+                            IsVisible="{Binding IsBusy}"
+                        />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Password of an encrypted session -->
+                <StackPanel
+                    Grid.Column="1"
+                    Margin="24"
+                    Spacing="12"
+                    IsVisible="{Binding IsUnlocking}"
+                >
+                    <TextBlock
+                        Classes="h2"
+                        Text="{Binding PendingName, StringFormat='Open encrypted session: {0}'}"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                    <TextBlock
+                        Classes="hint"
+                        FontSize="12"
+                        Text="{Binding PendingDirectory}"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                    <TextBox
+                        PasswordChar="●"
+                        PlaceholderText="Password"
+                        Text="{Binding Password}"
+                        x:Name="UnlockPasswordBox"
+                    />
+                    <TextBlock
+                        Classes="error"
+                        Text="{Binding FormError}"
+                        IsVisible="{Binding FormError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            Classes="accent"
+                            Content="Open"
+                            Command="{Binding ConfirmUnlockCommand}"
+                            IsDefault="{Binding IsUnlocking}"
+                        />
+                        <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                        <ProgressBar
+                            IsIndeterminate="True"
+                            Width="100"
+                            IsVisible="{Binding IsBusy}"
+                        />
+                    </StackPanel>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

@@ -49,6 +49,9 @@ public sealed partial class WorkspaceViewModel : ViewModelBase
 
     public string SessionDirectory => Services.Session?.Directory ?? "";
 
+    public string SessionLabel =>
+        Services.Session?.IsEncrypted == true ? "SESSION · ENCRYPTED" : "SESSION";
+
     public InputViewModel Input { get; }
 
     public ReviewViewModel Review { get; }

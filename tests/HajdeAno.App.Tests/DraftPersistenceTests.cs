@@ -1,3 +1,4 @@
+using System.Text;
 using Avalonia;
 using Avalonia.Headless;
 using HajdeAno.App.Services;
@@ -27,11 +28,31 @@ public static class TestAppBuilder
 /// <summary>Opens sessions the way the user does, through the session picker.</summary>
 internal static class TestSession
 {
-    /// <summary>Create the session in <paramref name="directory"/> (or open it if it exists).</summary>
-    public static WorkspaceViewModel Open(MainWindowViewModel main, string directory)
+    /// <summary>
+    /// Create the session in <paramref name="directory"/> (or open it if it exists),
+    /// encrypted with <paramref name="password"/> if one is given.
+    /// </summary>
+    public static async Task<WorkspaceViewModel> OpenAsync(
+        MainWindowViewModel main,
+        string directory,
+        string? password = null
+    )
     {
         var picker = Assert.IsType<SessionPickerViewModel>(main.Current);
         picker.CreateSession(directory);
+        if (picker.IsCreating)
+        {
+            picker.Encrypt = password is not null;
+            picker.Password = password ?? "";
+            picker.ConfirmPassword = password ?? "";
+            await picker.ConfirmCreateCommand.ExecuteAsync(null);
+        }
+        else if (picker.IsUnlocking)
+        {
+            picker.Password = password ?? "";
+            await picker.ConfirmUnlockCommand.ExecuteAsync(null);
+        }
+
         Assert.Null(picker.Error);
         return Assert.IsType<WorkspaceViewModel>(main.Current);
     }
@@ -123,8 +144,8 @@ public sealed class DraftPersistenceTests : IDisposable
         return (window, main, services);
     }
 
-    private WorkspaceViewModel OpenSession(MainWindowViewModel main) =>
-        TestSession.Open(main, SessionDir);
+    private Task<WorkspaceViewModel> OpenSessionAsync(MainWindowViewModel main) =>
+        TestSession.OpenAsync(main, SessionDir);
 
     /// <summary>Close the program like the user does: close the window, then exit.</summary>
     private static void Close(MainWindow window, AppServices services)
@@ -143,7 +164,7 @@ public sealed class DraftPersistenceTests : IDisposable
                 // First run: create the session and a case, open the file, close at once
                 // (before the autosave timer fires).
                 var (window, main, services) = Start();
-                var workspace = OpenSession(main);
+                var workspace = await OpenSessionAsync(main);
                 workspace.NewCaseName = "Synthetischer Fall";
                 workspace.CreateCaseCommand.Execute(null);
                 await workspace.Input.OpenFileCommand.ExecuteAsync(null);
@@ -176,7 +197,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = OpenSession(main);
+                var workspace = await OpenSessionAsync(main);
 
                 workspace.NewCaseName = "Fall A";
                 workspace.CreateCaseCommand.Execute(null);
@@ -198,7 +219,7 @@ public sealed class DraftPersistenceTests : IDisposable
                 // Closing the session saves the draft as well.
                 workspace.Input.Text = "Geändert vor dem Schliessen.";
                 workspace.CloseSessionCommand.Execute(null);
-                workspace = OpenSession(main);
+                workspace = await OpenSessionAsync(main);
                 workspace.SelectedCase = workspace.Cases.Single(c => c.Name == "Fall B");
                 Assert.Equal("Geändert vor dem Schliessen.", workspace.Input.Text);
 
@@ -217,7 +238,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = OpenSession(main);
+                var workspace = await OpenSessionAsync(main);
                 workspace.NewCaseName = "Zu löschen";
                 workspace.CreateCaseCommand.Execute(null);
                 await workspace.Input.OpenFileCommand.ExecuteAsync(null);
@@ -244,7 +265,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = OpenSession(main);
+                var workspace = await OpenSessionAsync(main);
                 workspace.NewCaseName = "Dateien";
                 workspace.CreateCaseCommand.Execute(null);
                 var input = workspace.Input;
@@ -292,7 +313,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = OpenSession(main);
+                var workspace = await OpenSessionAsync(main);
                 workspace.NewCaseName = "Autosave";
                 workspace.CreateCaseCommand.Execute(null);
                 var input = workspace.Input;
@@ -316,6 +337,65 @@ public sealed class DraftPersistenceTests : IDisposable
             },
             CancellationToken.None
         );
+    }
+
+    [Fact]
+    public async Task Encrypted_session_asks_for_the_password_and_keeps_no_plaintext_on_disk()
+    {
+        const string password = "synthetic password 123";
+        using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        await session.Dispatch(
+            async () =>
+            {
+                var (window, main, services) = Start();
+                var workspace = await TestSession.OpenAsync(main, SessionDir, password);
+                Assert.Equal("SESSION · ENCRYPTED", workspace.SessionLabel);
+                workspace.NewCaseName = "Synthetischer Fall";
+                workspace.CreateCaseCommand.Execute(null);
+                await workspace.Input.OpenFileCommand.ExecuteAsync(null);
+                Close(window, services);
+
+                // Reopening from the recent list asks for the password.
+                (window, main, services) = Start();
+                var picker = Assert.IsType<SessionPickerViewModel>(main.Current);
+                var recent = Assert.Single(picker.Recent);
+                Assert.True(recent.IsEncrypted);
+                recent.OpenCommand.Execute(null);
+                Assert.True(picker.IsUnlocking);
+
+                picker.Password = "wrong password!";
+                await picker.ConfirmUnlockCommand.ExecuteAsync(null);
+                Assert.Equal("Wrong password.", picker.Error);
+                Assert.IsType<SessionPickerViewModel>(main.Current);
+
+                picker.Password = password;
+                await picker.ConfirmUnlockCommand.ExecuteAsync(null);
+                workspace = Assert.IsType<WorkspaceViewModel>(main.Current);
+                Assert.Equal("Synthetischer Fall", workspace.SelectedCase?.Name);
+                Assert.Equal(SyntheticText, workspace.Input.Text);
+                Assert.Equal("", picker.Password);
+                Close(window, services);
+                return true;
+            },
+            CancellationToken.None
+        );
+
+        foreach (var file in Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories))
+        {
+            if (file == InputFile)
+            {
+                continue;
+            }
+
+            var bytes = File.ReadAllBytes(file);
+            foreach (var secret in new[] { "Blumenthal", "Velowerkstatt", "Synthetischer" })
+            {
+                Assert.False(
+                    bytes.AsSpan().IndexOf(Encoding.UTF8.GetBytes(secret)) >= 0,
+                    $"\"{secret}\" found in plaintext in {Path.GetFileName(file)}"
+                );
+            }
+        }
     }
 
     /// <summary>Extractor which waits until the test lets it finish.</summary>
@@ -347,7 +427,7 @@ public sealed class DraftPersistenceTests : IDisposable
             async () =>
             {
                 var (window, main, services) = Start();
-                var workspace = OpenSession(main);
+                var workspace = await OpenSessionAsync(main);
                 workspace.NewCaseName = "Fall B";
                 workspace.CreateCaseCommand.Execute(null);
                 workspace.NewCaseName = "Fall A";

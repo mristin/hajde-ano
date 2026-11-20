@@ -96,7 +96,7 @@ public sealed class ReviewSelectionTests : IDisposable
                 window.DataContext = main;
                 window.Show();
 
-                var workspace = TestSession.Open(main, Path.Combine(_root, "session"));
+                var workspace = await TestSession.OpenAsync(main, Path.Combine(_root, "session"));
                 workspace.NewCaseName = "Auswahl";
                 workspace.CreateCaseCommand.Execute(null);
                 workspace.Input.Text = SyntheticText;
@@ -164,7 +164,7 @@ public sealed class ReviewSelectionTests : IDisposable
                 window.DataContext = main;
                 window.Show();
 
-                var workspace = TestSession.Open(main, Path.Combine(_root, "session"));
+                var workspace = await TestSession.OpenAsync(main, Path.Combine(_root, "session"));
                 workspace.NewCaseName = "Kopieren";
                 workspace.CreateCaseCommand.Execute(null);
                 var review = workspace.Review;

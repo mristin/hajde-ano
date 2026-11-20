@@ -66,10 +66,33 @@ public sealed class SessionPickerTests : IDisposable
                     StringComparison.Ordinal
                 );
 
-                // New session in an empty folder.
+                // New session in an empty folder: the options are shown first. Cancel
+                // creates nothing.
                 var first = Path.Combine(_root, "Mietrecht");
                 ui.FolderPath = first;
                 await Picker(main).NewSessionCommand.ExecuteAsync(null);
+                Assert.True(Picker(main).IsCreating);
+                Assert.Equal("Mietrecht", Picker(main).PendingName);
+                Picker(main).CancelCommand.Execute(null);
+                Assert.True(Picker(main).IsChoosing);
+                Assert.False(Directory.Exists(first));
+
+                // The password is checked before anything is created.
+                await Picker(main).NewSessionCommand.ExecuteAsync(null);
+                Picker(main).Encrypt = true;
+                Picker(main).Password = "kurz";
+                Picker(main).ConfirmPassword = "kurz";
+                await Picker(main).ConfirmCreateCommand.ExecuteAsync(null);
+                Assert.Contains("at least 8", Picker(main).Error, StringComparison.Ordinal);
+                Picker(main).Password = "synthetic password 1";
+                Picker(main).ConfirmPassword = "synthetic password 2";
+                await Picker(main).ConfirmCreateCommand.ExecuteAsync(null);
+                Assert.Equal("The passwords do not match.", Picker(main).Error);
+                Assert.False(Directory.Exists(first));
+
+                // Without encryption.
+                Picker(main).Encrypt = false;
+                await Picker(main).ConfirmCreateCommand.ExecuteAsync(null);
                 var workspace = Assert.IsType<WorkspaceViewModel>(main.Current);
                 Assert.Equal("Mietrecht", workspace.SessionName);
                 Assert.Equal("Mietrecht – Hajde Ano", main.Title);
@@ -81,6 +104,8 @@ public sealed class SessionPickerTests : IDisposable
                 var second = Path.Combine(_root, "Versicherung");
                 ui.FolderPath = second;
                 await Picker(main).NewSessionCommand.ExecuteAsync(null);
+                await Picker(main).ConfirmCreateCommand.ExecuteAsync(null);
+                Assert.False(Session.IsEncryptedSession(second));
                 Assert.Empty(Assert.IsType<WorkspaceViewModel>(main.Current).Cases);
                 main.CloseSession();
                 Assert.Equal(

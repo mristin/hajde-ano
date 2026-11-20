@@ -127,14 +127,17 @@ python3 dev/build.py test
   JSON, hallucinated entities, unknown and malformed placeholders, chunking of long
   documents, restoring Word documents (placeholders split over formatting runs,
   headers, footers, notes, title), session storage (layout, empty-folder check, damaged
-  session and case files, deletion, leftover temporary files) and
+  session and case files, deletion, leftover temporary files; for encrypted sessions:
+  wrong and missing passwords, no plaintext on disk, tampered and swapped case files,
+  bounded iteration counts) and
   the synthetic cases with an oracle detector.
 * `HajdeAno.Llm.Tests` run the real llama.cpp inference path with a 1 MB toy model
   (nonsense output, but native loading, grammar-constrained sampling and validation are
   exercised on every OS in CI).
 * `HajdeAno.App.Tests` drive the real window and view models headlessly (Avalonia
   Headless): the session picker creates, opens and lists sessions (refusing non-empty
-  and non-session folders, marking moved ones), the text survives closing and
+  and non-session folders, marking moved ones, checking new passwords, asking for the
+  password of an encrypted session), an encrypted session keeps no plaintext on disk, the text survives closing and
   restarting the program, each case keeps its
   own text, deleting a case deletes its text, New/Open ask before replacing text,
   autosave only writes changed text, a detection result can never end up in another
@@ -195,7 +198,8 @@ the release. The model weights are never packaged.
   error messages. Unexpected errors show only their type; the crash handler in
   `Program.cs` exits without printing details or writing a core dump.
 * Case data, mappings and drafts are written only through `Session` (atomic, into the
-  session folder the user chose). Never write them anywhere else.
+  session folder the user chose, encrypted if the session is). Never write them anywhere
+  else.
 * Keep all text replacement deterministic and in C#. The model only *reports* spans.
 * Prefer recall over precision. Uncertain detections are flagged for review, not
   dropped.
